@@ -115,6 +115,12 @@ Static demo mode is always free and sends no Azure requests:
 dotnet run --project src\ModelWorld -- --static --demo
 ```
 
+To compare the bat-and-ball reasoning trap offline:
+
+```powershell
+dotnet run --project src\ModelWorld -- --static --demo --prompt reasoning-schedule
+```
+
 Connected demo mode sends Azure requests and may incur charges:
 
 ```powershell
@@ -122,6 +128,7 @@ dotnet run --project src\ModelWorld -- --demo
 ```
 
 The connected demo runs one prompt against the default three-model set: `gpt-5.4-mini`, `o4-mini`, and `Llama-3.3-70B-Instruct`.
+While requests are running, the status line shows the current model and prompt. If `ModelWorld:Azure:RequestTimeoutSeconds` is not configured, demo requests time out after 45 seconds per model.
 
 ## Classroom Cost Controls
 

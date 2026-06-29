@@ -53,5 +53,10 @@ public sealed class CatalogTests
         Assert.Contains("Coding", domains);
         Assert.Contains("Summarization", domains);
         Assert.Contains("Structured Output", domains);
+
+        var reasoningPrompt = PromptCatalog.GetById("reasoning-schedule");
+        Assert.Equal("Bat and Ball Trap", reasoningPrompt.Title);
+        Assert.Contains("bat and ball", reasoningPrompt.PromptText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("5 cents", reasoningPrompt.ExpectedBehavior, StringComparison.OrdinalIgnoreCase);
     }
 }

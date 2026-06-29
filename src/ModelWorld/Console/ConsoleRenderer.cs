@@ -324,13 +324,18 @@ public sealed class ConsoleRenderer
 
     public async Task ShowProgressAsync(Func<Task> action, string statusMessage = "Running static simulation...")
     {
+        await ShowProgressAsync(async _ => await action(), statusMessage);
+    }
+
+    public async Task ShowProgressAsync(Func<Action<string>, Task> action, string statusMessage = "Running static simulation...")
+    {
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.BouncingBar)
             .SpinnerStyle(Style.Parse($"bold {AccentAlt}"))
-            .StartAsync($"[{Accent}]{NerdRun} {Markup.Escape(statusMessage)}[/]", async _ =>
+            .StartAsync($"[{Accent}]{NerdRun} {Markup.Escape(statusMessage)}[/]", async context =>
             {
                 await Task.Delay(250);
-                await action();
+                await action(message => context.Status($"[{Accent}]{NerdRun} {Markup.Escape(message)}[/]"));
             });
     }
 

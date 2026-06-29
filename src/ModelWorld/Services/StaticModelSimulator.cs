@@ -46,7 +46,7 @@ public sealed class StaticModelSimulator : IModelRunner
     private static int EstimatePromptTokens(PromptScenario prompt) => prompt.Id switch
     {
         "math-check" => 126,
-        "reasoning-schedule" => 55,
+        "reasoning-schedule" => 27,
         "coding-review" => 31,
         "summarization" => 165,
         "structured-output" => 39,
@@ -58,7 +58,7 @@ public sealed class StaticModelSimulator : IModelRunner
         var baseTokens = prompt.Id switch
         {
             "math-check" => 28,
-            "reasoning-schedule" => 68,
+            "reasoning-schedule" => 42,
             "coding-review" => 54,
             "summarization" => 50,
             "structured-output" => 28,
@@ -109,9 +109,10 @@ public sealed class StaticModelSimulator : IModelRunner
         },
         "reasoning-schedule" => model.Id switch
         {
-            "gpt-54-mini" => "The sessions take 25 + 40 + 15 = 80 minutes. 80 minutes before 3:00 PM is 1:40 PM, so setup starts at 1:40 PM.",
-            "o4-mini" => "Work backward: Q&A starts 2:45 PM, demo starts 2:05 PM, setup starts 1:40 PM. Latest setup start: 1:40 PM.",
-            _ => "The sessions must occupy 25 + 40 + 15 = 80 minutes total. Working backward from the 3:00 PM Q&A end time gives 1:40 PM as the latest setup start."
+            "gpt-54-mini" => "The ball costs 10 cents.",
+            "o4-mini" => "Let the ball cost x. The bat costs x + $1, so 2x + $1 = $1.10. That makes x = $0.05, so the ball costs 5 cents.",
+            "llama-33-70b-instruct" => "The ball costs 5 cents. Then the bat costs $1.05, and $1.05 + $0.05 = $1.10.",
+            _ => "The ball costs 5 cents: if the ball is $0.05, the bat is $1.05, which is exactly $1.10 total."
         },
         "coding-review" => model.Id switch
         {

@@ -27,4 +27,22 @@ public sealed class StaticModelSimulatorTests
         Assert.Contains("$50.15", firstResult.Output, StringComparison.Ordinal);
         Assert.Equal(2, firstResult.Output.Split('\n').Length);
     }
+
+    [Fact]
+    public async Task RunAsync_ShowsReasoningTrapContrast()
+    {
+        var simulator = new StaticModelSimulator();
+        var models = new[]
+        {
+            ModelCatalog.GetById("gpt-54-mini"),
+            ModelCatalog.GetById("o4-mini")
+        };
+        var prompts = new[] { PromptCatalog.GetById("reasoning-schedule") };
+
+        var results = await simulator.RunAsync(models, prompts);
+
+        Assert.Equal(2, results.Count);
+        Assert.Contains("10 cents", results.Single(result => result.Model.Id == "gpt-54-mini").Output, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("5 cents", results.Single(result => result.Model.Id == "o4-mini").Output, StringComparison.OrdinalIgnoreCase);
+    }
 }

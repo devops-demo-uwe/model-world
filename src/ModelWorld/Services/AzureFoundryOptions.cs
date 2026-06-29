@@ -6,13 +6,14 @@ public sealed class AzureFoundryOptions
     public const string DefaultTokenScope = "https://ai.azure.com/.default";
     public const string DefaultPricingEndpoint = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview";
     public const string DefaultRegion = "eastus";
+    public const int DefaultRequestTimeoutSeconds = 120;
 
     public string? Endpoint { get; init; }
     public string Region { get; init; } = DefaultRegion;
     public string PricingEndpoint { get; init; } = DefaultPricingEndpoint;
     public int MaxOutputTokenCount { get; init; } = 300;
     public float Temperature { get; init; } = 0.2f;
-    public int RequestTimeoutSeconds { get; init; } = 120;
+    public int RequestTimeoutSeconds { get; set; } = DefaultRequestTimeoutSeconds;
     public Dictionary<string, string> DeploymentOverrides { get; init; } = new(StringComparer.OrdinalIgnoreCase);
 
     public Uri GetNormalizedEndpoint()

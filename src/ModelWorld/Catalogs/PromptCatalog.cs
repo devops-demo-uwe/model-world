@@ -27,11 +27,11 @@ public static class PromptCatalog
         new(
             Id: "reasoning-schedule",
             Domain: "Reasoning",
-            Title: "Workshop Schedule",
-            PromptText: "Three sessions must run in order: setup before demo, demo before Q&A. Setup takes 25 minutes, demo 40 minutes, Q&A 15 minutes. If Q&A must end by 3:00 PM, when is the latest setup can start?",
-            Intent: "Evaluate chained time reasoning.",
-            ExpectedBehavior: "Work backward from 3:00 PM for a total of 80 minutes, so setup starts by 1:40 PM.",
-            Reveals: "How clearly the model tracks dependencies and units."),
+            Title: "Bat and Ball Trap",
+            PromptText: "A bat and ball cost $1.10. The bat costs $1 more than the ball. How much does the ball cost?",
+            Intent: "Reveal whether the model checks the algebra instead of following the common surface-pattern answer.",
+            ExpectedBehavior: "Answer 5 cents: if the ball costs $0.05, the bat costs $1.05, and together they cost $1.10.",
+            Reveals: "Whether the model slows down to verify the problem structure or returns the tempting but incorrect 10 cents answer."),
         new(
             Id: "coding-review",
             Domain: "Coding",

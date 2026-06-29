@@ -8,6 +8,7 @@ using ModelWorld.Services;
 var isDemo = args.Any(argument => string.Equals(argument, "--demo", StringComparison.OrdinalIgnoreCase));
 var isStaticMode = args.Any(argument => string.Equals(argument, "--static", StringComparison.OrdinalIgnoreCase));
 var isLiveMode = !isStaticMode;
+var demoPromptId = GetOptionValue(args, "--prompt") ?? "math-check";
 var models = isLiveMode ? ModelCatalog.Live : ModelCatalog.All;
 var prompts = PromptCatalog.All;
 var renderer = new ConsoleRenderer();
@@ -30,7 +31,7 @@ if (isDemo)
 	var demoModels = isLiveMode
 		? ModelCatalog.GetDefaultLiveComparisonModels()
 		: ModelCatalog.GetDefaultComparisonModels();
-	await RunComparisonAsync(demoModels, [PromptCatalog.GetById("math-check")]);
+	await RunComparisonAsync(demoModels, [PromptCatalog.GetById(demoPromptId)]);
 	return;
 }
 
@@ -64,9 +65,25 @@ async Task RunComparisonAsync(
 	IReadOnlyList<ModelWorld.Models.PromptScenario> selectedPrompts)
 {
 	IReadOnlyList<ModelWorld.Models.SimulationResult> results = [];
-	await renderer.ShowProgressAsync(async () =>
+	await renderer.ShowProgressAsync(async updateStatus =>
 	{
-		results = await runner.RunAsync(selectedModels, selectedPrompts);
+		if (!isLiveMode)
+		{
+			results = await runner.RunAsync(selectedModels, selectedPrompts);
+			return;
+		}
+
+		List<ModelWorld.Models.SimulationResult> liveResults = [];
+		foreach (var prompt in selectedPrompts)
+		{
+			foreach (var model in selectedModels)
+			{
+				updateStatus($"Running {model.DisplayName} on {prompt.Title}...");
+				liveResults.AddRange(await runner.RunAsync([model], [prompt]));
+			}
+		}
+
+		results = liveResults;
 	}, isLiveMode ? "Running live Azure AI Foundry requests..." : "Running static simulation...");
 
 	renderer.RenderRunSummary(results);
@@ -87,6 +104,10 @@ async Task<IModelRunner?> CreateRunnerAsync()
 			.AddEnvironmentVariables()
 			.Build();
 		var options = configuration.GetSection(AzureFoundryOptions.SectionName).Get<AzureFoundryOptions>() ?? new AzureFoundryOptions();
+		if (isDemo && options.RequestTimeoutSeconds == AzureFoundryOptions.DefaultRequestTimeoutSeconds)
+		{
+			options.RequestTimeoutSeconds = 45;
+		}
 
 		options.GetNormalizedEndpoint();
 		options.GetMaxOutputTokenCount();
@@ -128,4 +149,17 @@ async Task<IReadOnlyDictionary<string, ModelPricing>> LoadPricingAsync(
 				$"Pricing lookup failed: {exception.Message}"),
 			StringComparer.OrdinalIgnoreCase);
 	}
+}
+
+static string? GetOptionValue(string[] arguments, string optionName)
+{
+	for (var index = 0; index < arguments.Length - 1; index++)
+	{
+		if (string.Equals(arguments[index], optionName, StringComparison.OrdinalIgnoreCase))
+		{
+			return arguments[index + 1];
+		}
+	}
+
+	return null;
 }

@@ -86,6 +86,14 @@ dotnet test
 dotnet run --project src\ModelWorld -- --static --demo
 ```
 
+To run the reasoning trap demo without Azure calls:
+
+```powershell
+dotnet run --project src\ModelWorld -- --static --demo --prompt reasoning-schedule
+```
+
+Live demo mode shows the current model and prompt while requests are running. If `ModelWorld:Azure:RequestTimeoutSeconds` is not configured, demo requests time out after 45 seconds per model.
+
 For the static interactive selection flow, run:
 
 ```powershell
