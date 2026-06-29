@@ -179,6 +179,26 @@ public sealed class AzureModelRunnerTests
         Assert.Contains("deployment missing", result.Note, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task RunAsync_ReturnsErrorResultWhenLiveCallTimesOutInsideAggregateException()
+    {
+        var runner = new AzureModelRunner(new AzureFoundryOptions(), new FakeFoundryChatClient(
+            new AggregateException(
+                "Retry failed after 2 tries.",
+                new TaskCanceledException("The operation was cancelled because it exceeded the configured timeout."),
+                new TaskCanceledException("The operation was canceled."))));
+        var model = ModelCatalog.GetById("gpt-54-mini");
+        var prompt = PromptCatalog.GetById("math-check");
+
+        var results = await runner.RunAsync([model], [prompt]);
+
+        var result = Assert.Single(results);
+        Assert.Equal("error", result.FinishReason);
+        Assert.Equal(0, result.TotalTokens);
+        Assert.Equal(0, result.Cost.TotalCostUsd);
+        Assert.Equal("Azure request timed out or was cancelled.", result.Note);
+    }
+
     private sealed class FakeFoundryChatClient : IFoundryChatClient
     {
         private readonly FoundryChatResponse? response;

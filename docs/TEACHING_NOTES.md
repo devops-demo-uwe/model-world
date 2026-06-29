@@ -154,3 +154,64 @@ In Model World, this is a useful model-selection lesson: choose reasoning models
 ### Discussion Prompt
 
 When reviewing a comparison table, ask learners to compare visible answer quality against latency, completion tokens, and estimated cost. If the reasoning model used many more completion tokens without a noticeably better answer, ask whether the task justified the extra reasoning budget.
+
+## 2026-06-29: Coding Review Reveals Implicit Contract Reasoning
+
+### Prompt
+
+```text
+Review this C# method and suggest one improvement:
+public static decimal Average(decimal total, int count) => total / count;
+```
+
+### Observation
+
+All three models found the obvious defect: the method can divide by zero when `count` is `0`. That makes this a useful coding example because the interesting difference is not whether the models know C# syntax. The interesting difference is how deeply they infer the API contract behind the code.
+
+For a method named `Average`, a count of zero is invalid. A negative count is also almost certainly invalid. The better review is therefore not only "avoid divide-by-zero," but "define the valid range for `count` as positive."
+
+### Model Comparison
+
+| Model | Main fix | Exception type | Handles negative count? | Style |
+| --- | --- | --- | --- | --- |
+| GPT-5.4 | `count == 0` | `ArgumentException` | Mentions as optional | Nuanced reviewer |
+| GPT-5.4 mini | `count == 0` | `ArgumentException` | No | Efficient assistant |
+| o4-mini | `count <= 0` | `ArgumentOutOfRangeException` | Yes | Contract-focused reasoning |
+
+`GPT-5.4` gave a solid senior-reviewer answer: fix the immediate bug, then mention that negative counts may also need to be rejected depending on the domain. `GPT-5.4 mini` gave a concise everyday code-review answer: correct, practical, and likely good enough for many cases. `o4-mini` gave the strongest contract-level improvement by checking `count <= 0` and using `ArgumentOutOfRangeException`, which more precisely describes an argument outside its allowed range.
+
+### Stronger Review Target
+
+```csharp
+public static decimal Average(decimal total, int count)
+{
+    if (count <= 0)
+    {
+        throw new ArgumentOutOfRangeException(nameof(count), "Count must be greater than zero.");
+    }
+
+    return total / count;
+}
+```
+
+This is a compact way to explain the reasoning progression:
+
+```text
+surface bug: division by zero
+deeper issue: invalid parameter range
+better contract: count must be positive
+```
+
+### Teaching Point
+
+This coding prompt is stronger than a simple reasoning trap because it mirrors a realistic developer workflow. All models can identify the visible failure mode, but the best code-review answer notices the hidden assumption: an average should not be computed from a non-positive count.
+
+Use this example to distinguish fixing an error from improving a contract. The obvious bug is divide-by-zero. The better review is that the method should define `count` as a positive value.
+
+### Demo Takeaway
+
+For a live presentation, summarize it this way:
+
+> Here all models find the obvious defect. But `o4-mini` goes one step deeper: it treats the method as an API contract and checks the full invalid range, not only the divide-by-zero case. This is where reasoning-oriented models can be useful in code review.
+
+The tradeoff is also visible in the benchmark table: `GPT-5.4 mini` is the practical default, `GPT-5.4` gives a more polished review, and `o4-mini` may catch better edge-case logic, but can be more verbose and not always cheaper in a given run.

@@ -145,7 +145,8 @@ public sealed class AzureModelRunner : IModelRunner
             or AuthenticationFailedException
             or CredentialUnavailableException
             or ClientResultException
-            or InvalidOperationException;
+            or InvalidOperationException
+            || exception is AggregateException aggregateException && aggregateException.InnerExceptions.Any(IsExpectedAzureFailure);
 
     private float? GetTemperature(ModelProfile model) =>
         string.Equals(model.Id, "o4-mini", StringComparison.OrdinalIgnoreCase)
@@ -170,6 +171,7 @@ public sealed class AzureModelRunner : IModelRunner
     private static string CreateFailureNote(Exception exception) => exception switch
     {
         OperationCanceledException => "Azure request timed out or was cancelled.",
+        AggregateException aggregateException when aggregateException.InnerExceptions.Any(innerException => innerException is OperationCanceledException) => "Azure request timed out or was cancelled.",
         CredentialUnavailableException => "No Azure credential was available. Sign in with az login or run in an environment with managed identity.",
         AuthenticationFailedException => "Azure credential authentication failed. Check az login, managed identity, or Entra role assignment.",
         ClientResultException clientException => $"Azure request failed with status {clientException.Status}: {clientException.Message}",
