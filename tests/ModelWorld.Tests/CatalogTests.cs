@@ -27,6 +27,15 @@ public sealed class CatalogTests
     }
 
     [Fact]
+    public void ModelCatalog_LiveComparisonSetExcludesPrototypeOnlyModels()
+    {
+        var liveModels = ModelCatalog.GetDefaultLiveComparisonModels();
+
+        Assert.Equal(3, liveModels.Count);
+        Assert.All(liveModels, model => Assert.Contains(model, ModelCatalog.Live));
+    }
+
+    [Fact]
     public void PromptCatalog_ContainsFiveUniquePromptsAcrossExpectedDomains()
     {
         var prompts = PromptCatalog.All;

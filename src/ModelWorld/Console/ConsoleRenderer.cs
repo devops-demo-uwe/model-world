@@ -37,7 +37,7 @@ public sealed class ConsoleRenderer
         AnsiConsole.Profile.Width = LayoutWidth;
     }
 
-    public void RenderIntro()
+    public void RenderIntro(bool isLiveMode = false)
     {
         if (!System.Console.IsOutputRedirected)
         {
@@ -46,11 +46,15 @@ public sealed class ConsoleRenderer
 
         RenderTitleBanner();
 
+        var modePanelText = isLiveMode
+            ? $"[bold {Warning}]Live Azure mode[/]: [white]Azure AI Foundry requests will be sent and may incur usage charges. Token usage and latency come from live responses.[/]"
+            : $"[bold {Warning}]Static prototype[/]: [white]no Azure calls are made.[/]\n[{Muted}]Model behavior, latency, tokens, and costs are illustrative estimates for exploring the future Foundry flow.[/]";
+
         WriteFullWidth(new Panel(
-                $"[bold {Warning}]Static prototype[/]: [white]no Azure calls are made.[/]\n[{Muted}]Model behavior, latency, tokens, and costs are illustrative estimates for exploring the future Foundry flow.[/]")
+                modePanelText)
             .Border(BoxBorder.Double)
             .BorderColor(AccentAltColor)
-            .Header($" [bold {AccentAlt}][/][bold black on {AccentAlt}] Preview [/][bold {AccentAlt}][/] ")
+            .Header($" [bold {AccentAlt}][/][bold black on {AccentAlt}] {(isLiveMode ? "Live" : "Preview")} [/][bold {AccentAlt}][/] ")
             .Padding(1, 0)
             .Expand());
         AnsiConsole.WriteLine();
@@ -245,12 +249,23 @@ public sealed class ConsoleRenderer
         AnsiConsole.MarkupLine($"[{Muted}]Thanks for exploring[/] [bold {Accent}]Model World[/][{Muted}].[/]");
     }
 
-    public async Task ShowProgressAsync(Func<Task> action)
+    public void RenderConfigurationError(string message)
+    {
+        WriteFullWidth(new Panel($"[bold {Warning}]Live Azure mode is not configured.[/]\n[white]{Markup.Escape(message)}[/]")
+            .Border(BoxBorder.Double)
+            .BorderColor(WarningColor)
+            .Header($" [bold {Warning}]Configuration[/] ")
+            .Padding(1, 0)
+            .Expand());
+        AnsiConsole.WriteLine();
+    }
+
+    public async Task ShowProgressAsync(Func<Task> action, string statusMessage = "Running static simulation...")
     {
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.BouncingBar)
             .SpinnerStyle(Style.Parse($"bold {AccentAlt}"))
-            .StartAsync($"[{Accent}]{NerdRun} Running static simulation...[/]", async _ =>
+            .StartAsync($"[{Accent}]{NerdRun} {Markup.Escape(statusMessage)}[/]", async _ =>
             {
                 await Task.Delay(250);
                 await action();

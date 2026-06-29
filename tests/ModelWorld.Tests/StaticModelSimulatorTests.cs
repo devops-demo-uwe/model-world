@@ -9,7 +9,7 @@ public sealed class StaticModelSimulatorTests
     public async Task RunAsync_ReturnsDeterministicCostedResults()
     {
         var simulator = new StaticModelSimulator();
-        var models = new[] { ModelCatalog.GetById("gpt-4o") };
+        var models = new[] { ModelCatalog.GetById("gpt-54") };
         var prompts = new[] { PromptCatalog.GetById("math-check") };
 
         var firstRun = await simulator.RunAsync(models, prompts);
