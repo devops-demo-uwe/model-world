@@ -1,46 +1,78 @@
 using System.Globalization;
 using ModelWorld.Models;
 using Spectre.Console;
+using Spectre.Console.Rendering;
 
 namespace ModelWorld.Console;
 
 public sealed class ConsoleRenderer
 {
+    private const int LayoutWidth = 120;
     private const int MaximumComparedModels = 3;
+    private const string Accent = "#38bdf8";
+    private const string AccentAlt = "#f472b6";
+    private const string Success = "#34d399";
+    private const string Warning = "#fbbf24";
+    private const string Muted = "#94a3b8";
+    private const string NerdSpark = "󰐕";
+    private const string NerdModel = "󰚩";
+    private const string NerdPrompt = "󰈙";
+    private const string NerdRun = "󰐊";
+    private const string NerdCost = "󰃭";
+    private const string NerdExit = "󰗼";
+
+    private static readonly Color AccentColor = new(56, 189, 248);
+    private static readonly Color AccentAltColor = new(244, 114, 182);
+    private static readonly Color SuccessColor = new(52, 211, 153);
+    private static readonly Color WarningColor = new(251, 191, 36);
+    private static readonly Color PanelFillColor = new(18, 25, 38);
+
+    public ConsoleRenderer()
+    {
+        AnsiConsole.Profile.Width = LayoutWidth;
+    }
 
     public void RenderIntro()
     {
-        AnsiConsole.Clear();
-        AnsiConsole.Write(new FigletText("Model World").Color(Color.Teal));
-        AnsiConsole.Write(new Panel(
-                "[bold]Static prototype[/]: no Azure calls are made. Model behavior, latency, tokens, and costs are illustrative estimates for exploring the future Foundry flow.")
-            .Border(BoxBorder.Rounded)
-            .BorderColor(Color.Grey)
-            .Header(" Preview "));
+        if (!System.Console.IsOutputRedirected)
+        {
+            AnsiConsole.Clear();
+        }
+
+        AnsiConsole.Write(new FigletText("Model World")
+            .LeftJustified()
+            .Color(AccentColor));
+        AnsiConsole.MarkupLine($"[bold {Accent}]{NerdSpark} model comparison lab[/] [grey]powered by static Foundry-style simulations[/]");
+        AnsiConsole.WriteLine();
+        WriteFullWidth(new Panel(
+                $"[bold {Warning}]Static prototype[/]: [white]no Azure calls are made.[/]\n[{Muted}]Model behavior, latency, tokens, and costs are illustrative estimates for exploring the future Foundry flow.[/]")
+            .Border(BoxBorder.Double)
+            .BorderColor(AccentAltColor)
+            .Header($" [bold {AccentAlt}][/][bold black on {AccentAlt}] Preview [/][bold {AccentAlt}][/] ")
+            .Padding(1, 0)
+            .Expand());
         AnsiConsole.WriteLine();
     }
 
     public void RenderModelTable(IReadOnlyList<ModelProfile> models)
     {
         var table = new Table()
-            .Title("[bold teal]Model Catalog[/]")
-            .Border(TableBorder.Rounded)
-            .AddColumn("Model")
-            .AddColumn("Family")
-            .AddColumn("Context")
-            .AddColumn("Typical Latency")
-            .AddColumn("Est. Price / 1M Tokens")
-            .AddColumn("Best At");
+            .Title($"[bold {Accent}]{NerdModel} Model Catalog[/]")
+            .Border(TableBorder.HeavyHead)
+            .BorderColor(AccentColor)
+            .Width(LayoutWidth)
+            .AddColumn(new TableColumn($"[bold {Accent}]Model[/]").NoWrap())
+            .AddColumn(new TableColumn($"[bold {AccentAlt}]Family + Fit[/]"))
+            .AddColumn(new TableColumn($"[bold {Success}]Scale[/]").RightAligned())
+            .AddColumn(new TableColumn($"[bold {AccentAlt}]{NerdCost} Price / 1M[/]").RightAligned());
 
         foreach (var model in models)
         {
             table.AddRow(
-                Markup.Escape(model.DisplayName),
-                Markup.Escape(model.Family),
-                FormatWholeNumber(model.ContextWindowTokens),
-                $"{FormatWholeNumber(model.TypicalLatencyMilliseconds)} ms",
-                $"${FormatCurrencyValue(model.InputCostPerMillionTokensUsd)} in / ${FormatCurrencyValue(model.OutputCostPerMillionTokensUsd)} out",
-                Markup.Escape(model.RecommendedUseCases));
+                $"[bold white]{Markup.Escape(model.DisplayName)}[/]",
+                $"[{AccentAlt}]{Markup.Escape(model.Family)}[/]\n[{Muted}]{Markup.Escape(model.RecommendedUseCases)}[/]",
+                $"[{Success}]{FormatWholeNumber(model.ContextWindowTokens)} ctx[/]\n[{Warning}]{FormatWholeNumber(model.TypicalLatencyMilliseconds)} ms[/]",
+                $"[{Accent}]${FormatCurrencyValue(model.InputCostPerMillionTokensUsd)} in[/]\n[{AccentAlt}]${FormatCurrencyValue(model.OutputCostPerMillionTokensUsd)} out[/]");
         }
 
         AnsiConsole.Write(table);
@@ -50,17 +82,19 @@ public sealed class ConsoleRenderer
     public void RenderPromptTable(IReadOnlyList<PromptScenario> prompts)
     {
         var table = new Table()
-            .Title("[bold teal]Prompt Gallery[/]")
-            .Border(TableBorder.Rounded)
-            .AddColumn("Domain")
-            .AddColumn("Title")
-            .AddColumn("Reveals");
+            .Title($"[bold {AccentAlt}]{NerdPrompt} Prompt Gallery[/]")
+            .Border(TableBorder.HeavyHead)
+            .BorderColor(AccentAltColor)
+            .Width(LayoutWidth)
+            .AddColumn(new TableColumn($"[bold {AccentAlt}]Domain[/]").NoWrap())
+            .AddColumn(new TableColumn($"[bold {Accent}]Title[/]").NoWrap())
+            .AddColumn(new TableColumn($"[bold {Success}]Reveals[/]"));
 
         foreach (var prompt in prompts)
         {
             table.AddRow(
-                Markup.Escape(prompt.Domain),
-                Markup.Escape(prompt.Title),
+                $"[{AccentAlt}]{Markup.Escape(prompt.Domain)}[/]",
+                $"[bold white]{Markup.Escape(prompt.Title)}[/]",
                 Markup.Escape(prompt.Reveals));
         }
 
@@ -72,8 +106,13 @@ public sealed class ConsoleRenderer
     {
         foreach (var group in results.GroupBy(result => result.Prompt))
         {
-            AnsiConsole.Write(new Rule($"[bold]{Markup.Escape(group.Key.Domain)} - {Markup.Escape(group.Key.Title)}[/]").RuleStyle("grey"));
-            AnsiConsole.MarkupLine($"[grey]{Markup.Escape(group.Key.PromptText)}[/]");
+            WriteFullWidth(new Rule($"[bold {AccentAlt}]{NerdPrompt} {Markup.Escape(group.Key.Domain)}[/] [grey][/] [bold {Accent}]{Markup.Escape(group.Key.Title)}[/]").RuleStyle(AccentAlt));
+            AnsiConsole.WriteLine();
+            WriteFullWidth(new Panel($"[{Muted}]{Markup.Escape(group.Key.PromptText)}[/]")
+                .Border(BoxBorder.Rounded)
+                .BorderColor(PanelFillColor)
+                .Padding(1, 0)
+                .Expand());
             AnsiConsole.WriteLine();
 
             RenderPromptComparisonTable(group.ToArray());
@@ -83,24 +122,24 @@ public sealed class ConsoleRenderer
     public void RenderRunSummary(IReadOnlyList<SimulationResult> results)
     {
         var table = new Table()
-            .Title("[bold teal]Run Summary[/]")
-            .Border(TableBorder.Simple)
-            .AddColumn("Model")
-            .AddColumn("Prompt")
-            .AddColumn("Elapsed")
-            .AddColumn("Tokens")
-            .AddColumn("Est. Cost")
-            .AddColumn("Finish");
+            .Title($"[bold {Success}]{NerdRun} Run Summary[/]")
+            .Border(TableBorder.Heavy)
+            .BorderColor(SuccessColor)
+            .Width(LayoutWidth)
+            .AddColumn(new TableColumn($"[bold {Accent}]Model[/]").NoWrap())
+            .AddColumn(new TableColumn($"[bold {AccentAlt}]Prompt[/]").NoWrap())
+            .AddColumn(new TableColumn($"[bold {Warning}]Run[/]").RightAligned())
+            .AddColumn(new TableColumn($"[bold {AccentAlt}]{NerdCost} Cost[/]").RightAligned())
+            .AddColumn(new TableColumn($"[bold {Success}]Finish[/]").NoWrap());
 
         foreach (var result in results)
         {
             table.AddRow(
-                Markup.Escape(result.Model.DisplayName),
-                Markup.Escape(result.Prompt.Title),
-                $"{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms",
-                FormatWholeNumber(result.TotalTokens),
-                $"${FormatCost(result.Cost.TotalCostUsd)}",
-                Markup.Escape(result.FinishReason));
+                $"[bold white]{Markup.Escape(result.Model.DisplayName)}[/]",
+                $"[{AccentAlt}]{Markup.Escape(result.Prompt.Title)}[/]",
+                $"[{Warning}]{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms[/]\n[{Success}]{FormatWholeNumber(result.TotalTokens)} tok[/]",
+                $"[{Accent}]${FormatCost(result.Cost.TotalCostUsd)}[/]",
+                $"[{Success}]{Markup.Escape(result.FinishReason)}[/]");
         }
 
         AnsiConsole.Write(table);
@@ -116,7 +155,9 @@ public sealed class ConsoleRenderer
             var selected = AnsiConsole.Prompt(
                 new MultiSelectionPrompt<string>()
                     .Title($"Choose up to {MaximumComparedModels} models to compare")
-                    .InstructionsText("[grey](Press <space> to toggle a model, <enter> to run.)[/]")
+                    .HighlightStyle(Style.Parse($"bold {Accent}"))
+                    .MoreChoicesText($"[{Muted}](Move up and down to reveal more models.)[/]")
+                    .InstructionsText($"[{Muted}](Press <space> to toggle a model, <enter> to run.)[/]")
                     .Required()
                     .PageSize(8)
                     .AddChoices(choices));
@@ -128,7 +169,7 @@ public sealed class ConsoleRenderer
                     .ToArray();
             }
 
-            AnsiConsole.MarkupLine($"[red]Choose {MaximumComparedModels} or fewer models so the comparison fits in columns.[/]");
+            AnsiConsole.MarkupLine($"[bold {Warning}]Choose {MaximumComparedModels} or fewer models so the comparison fits in columns.[/]");
         }
     }
 
@@ -138,6 +179,7 @@ public sealed class ConsoleRenderer
         var selected = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Choose a prompt")
+                .HighlightStyle(Style.Parse($"bold {AccentAlt}"))
                 .AddChoices(choices));
 
         return selected == "All prompts"
@@ -149,26 +191,28 @@ public sealed class ConsoleRenderer
         AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("What would you like to do?")
-                .AddChoices("Run a model comparison", "Exit Model World")) == "Run a model comparison";
+                .HighlightStyle(Style.Parse($"bold {Accent}"))
+                .AddChoices($"{NerdRun} Run a model comparison", $"{NerdExit} Exit Model World")) == $"{NerdRun} Run a model comparison";
 
     public bool ShouldRunAnotherComparison() =>
         AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Keep exploring?")
-                .AddChoices("Run another comparison", "Exit Model World")) == "Run another comparison";
+                .HighlightStyle(Style.Parse($"bold {Accent}"))
+                .AddChoices($"{NerdRun} Run another comparison", $"{NerdExit} Exit Model World")) == $"{NerdRun} Run another comparison";
 
     public void RenderGoodbye()
     {
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("[grey]Thanks for exploring Model World.[/]");
+        AnsiConsole.MarkupLine($"[{Muted}]Thanks for exploring[/] [bold {Accent}]Model World[/][{Muted}].[/]");
     }
 
     public async Task ShowProgressAsync(Func<Task> action)
     {
         await AnsiConsole.Status()
-            .Spinner(Spinner.Known.Dots)
-            .SpinnerStyle(Style.Parse("teal"))
-            .StartAsync("Running static simulation...", async _ =>
+            .Spinner(Spinner.Known.BouncingBar)
+            .SpinnerStyle(Style.Parse($"bold {AccentAlt}"))
+            .StartAsync($"[{Accent}]{NerdRun} Running static simulation...[/]", async _ =>
             {
                 await Task.Delay(250);
                 await action();
@@ -178,31 +222,35 @@ public sealed class ConsoleRenderer
     private static void RenderPromptComparisonTable(IReadOnlyList<SimulationResult> results)
     {
         var table = new Table()
-            .Border(TableBorder.Rounded)
-            .Expand()
-            .AddColumn(new TableColumn("[grey]Metric[/]").NoWrap());
+            .Border(TableBorder.HeavyHead)
+            .BorderColor(AccentColor)
+            .Width(LayoutWidth)
+            .AddColumn(new TableColumn($"[{Muted}]Metric[/]").NoWrap());
 
         foreach (var result in results)
         {
-            table.AddColumn(new TableColumn($"[bold teal]{Markup.Escape(result.Model.DisplayName)}[/]"));
+            table.AddColumn(new TableColumn($"[bold {Accent}]{NerdModel} {Markup.Escape(result.Model.DisplayName)}[/]"));
         }
 
-        table.AddRow(BuildRow("Elapsed", results, result => $"{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms"));
-        table.AddRow(BuildRow("Tokens", results, result => $"{FormatWholeNumber(result.PromptTokens)} prompt\n{FormatWholeNumber(result.CompletionTokens)} completion\n{FormatWholeNumber(result.TotalTokens)} total"));
-        table.AddRow(BuildRow("Estimated cost", results, result => $"${FormatCost(result.Cost.TotalCostUsd)}"));
-        table.AddRow(BuildRow("Finish", results, result => Markup.Escape(result.FinishReason)));
+        table.AddRow(BuildRow($"[{Warning}]󰔟 Elapsed[/]", results, result => $"[{Warning}]{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms[/]"));
+        table.AddRow(BuildRow($"[{Success}]󰓡 Tokens[/]", results, result => $"[{Accent}]{FormatWholeNumber(result.PromptTokens)}[/] prompt\n[{AccentAlt}]{FormatWholeNumber(result.CompletionTokens)}[/] completion\n[{Success}]{FormatWholeNumber(result.TotalTokens)}[/] total"));
+        table.AddRow(BuildRow($"[{AccentAlt}]{NerdCost} Estimated cost[/]", results, result => $"[{Accent}]${FormatCost(result.Cost.TotalCostUsd)}[/]"));
+        table.AddRow(BuildRow($"[{Success}]󰄬 Finish[/]", results, result => $"[{Success}]{Markup.Escape(result.FinishReason)}[/]"));
         table.AddRow(BuildRow("Note", results, result => Markup.Escape(result.Note ?? "")));
-        table.AddRow(BuildRow("Output", results, result => Markup.Escape(result.Output)));
+        table.AddRow(BuildRow($"[bold {Accent}]󰦨 Output[/]", results, result => $"[white]{Markup.Escape(result.Output)}[/]"));
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
     }
 
+    private static void WriteFullWidth(IRenderable renderable) =>
+        AnsiConsole.Write(Align.Left(renderable).Width(LayoutWidth));
+
     private static string[] BuildRow(
         string label,
         IReadOnlyList<SimulationResult> results,
         Func<SimulationResult, string> valueFactory) =>
-        [Markup.Escape(label), .. results.Select(valueFactory)];
+        [label, .. results.Select(valueFactory)];
 
     private static string FormatWholeNumber(int value) =>
         value.ToString("N0", CultureInfo.InvariantCulture);
