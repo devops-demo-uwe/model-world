@@ -8,6 +8,7 @@ namespace ModelWorld.Console;
 public sealed class ConsoleRenderer
 {
     private const int LayoutWidth = 120;
+    private const int BannerInnerWidth = LayoutWidth - 4;
     private const int MaximumComparedModels = 3;
     private const string Accent = "#38bdf8";
     private const string AccentAlt = "#f472b6";
@@ -20,6 +21,10 @@ public sealed class ConsoleRenderer
     private const string NerdRun = "󰐊";
     private const string NerdCost = "󰃭";
     private const string NerdExit = "󰗼";
+    private const string NerdAzure = "󰠅";
+    private const string NerdChart = "󰄧";
+    private const string NerdTimer = "󰔟";
+    private const string NerdTokens = "󰓡";
 
     private static readonly Color AccentColor = new(56, 189, 248);
     private static readonly Color AccentAltColor = new(244, 114, 182);
@@ -39,11 +44,8 @@ public sealed class ConsoleRenderer
             AnsiConsole.Clear();
         }
 
-        AnsiConsole.Write(new FigletText("Model World")
-            .LeftJustified()
-            .Color(AccentColor));
-        AnsiConsole.MarkupLine($"[bold {Accent}]{NerdSpark} model comparison lab[/] [grey]powered by static Foundry-style simulations[/]");
-        AnsiConsole.WriteLine();
+        RenderTitleBanner();
+
         WriteFullWidth(new Panel(
                 $"[bold {Warning}]Static prototype[/]: [white]no Azure calls are made.[/]\n[{Muted}]Model behavior, latency, tokens, and costs are illustrative estimates for exploring the future Foundry flow.[/]")
             .Border(BoxBorder.Double)
@@ -52,6 +54,42 @@ public sealed class ConsoleRenderer
             .Padding(1, 0)
             .Expand());
         AnsiConsole.WriteLine();
+    }
+
+    private static void RenderTitleBanner()
+    {
+        var title = new Rows(
+        [
+            Align.Center(new Markup($"[bold {Accent}]╭─[/][bold {AccentAlt}][/][bold black on {AccentAlt}] {NerdAzure} Azure AI Foundry [/][bold {AccentAlt}][/][bold {Success}][/][bold black on {Success}] {NerdChart} Compare [/][bold {Success}][/][bold {Warning}][/][bold black on {Warning}] {NerdTimer} Measure [/][bold {Warning}][/][bold {Accent}]─╮[/]")).Width(BannerInnerWidth),
+            .. BuildLogoWordmark(),
+            Align.Center(new Markup($"[bold {Accent}]╰─[/][bold {AccentAlt}][/][bold black on {AccentAlt}] {NerdSpark} Model Comparison Lab [/][bold {AccentAlt}][/][bold {Warning}][/][bold black on {Warning}] {NerdTokens} Tokens [/][bold {Warning}][/][bold {Success}][/][bold black on {Success}] {NerdCost} Cost [/][bold {Success}][/][bold {Accent}]─╯[/]")).Width(BannerInnerWidth),
+            Align.Center(new Markup($"[{Muted}]Foundry-style model runs, prompt galleries, latency, tokens, and cost estimates[/]")).Width(BannerInnerWidth),
+            Align.Center(new Markup($"[{Muted}]Proudly presented to you by[/] [bold {Accent}]Azure Foundry[/][{Muted}],[/] [bold {Success}]GitHub Copilot[/][{Muted}], and[/] [bold {AccentAlt}]Uwe Baumann[/]")).Width(BannerInnerWidth)
+        ]);
+
+        WriteFullWidth(new Panel(title)
+            .Border(BoxBorder.Double)
+            .BorderColor(AccentColor)
+            .Header($" [bold {Accent}][/][bold black on {Accent}] Model World [/][bold {Accent}][/] ")
+            .Padding(1, 0)
+            .Expand());
+        AnsiConsole.WriteLine();
+    }
+
+    private static IRenderable[] BuildLogoWordmark()
+    {
+        string[] lines =
+        [
+            @"    __  ___          __     __   _       __           __    __",
+            @"   /  |/  /___  ____/ /__  / /  | |     / /___  _____/ /___/ /",
+            @"  / /|_/ / __ \/ __  / _ \/ /   | | /| / / __ \/ ___/ / __  / ",
+            @" / /  / / /_/ / /_/ /  __/ /    | |/ |/ / /_/ / /  / / /_/ /  ",
+            @"/_/  /_/\____/\__,_/\___/_/     |__/|__/\____/_/  /_/\__,_/   "
+        ];
+
+        return lines
+            .Select(line => Align.Center(new Text(line, Style.Parse($"bold {Accent}"))).Width(BannerInnerWidth))
+            .ToArray();
     }
 
     public void RenderModelTable(IReadOnlyList<ModelProfile> models)
