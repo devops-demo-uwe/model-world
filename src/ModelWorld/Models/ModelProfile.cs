@@ -13,4 +13,5 @@ public sealed record ModelProfile(
     decimal InputCostPerMillionTokensUsd,
     decimal OutputCostPerMillionTokensUsd,
     int TypicalLatencyMilliseconds,
-    string BehaviorNotes);
+    string BehaviorNotes,
+    PricingLookupHints PricingLookupHints);

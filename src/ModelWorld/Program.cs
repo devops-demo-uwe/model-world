@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using ModelWorld.Catalogs;
 using ModelWorld.Console;
+using ModelWorld.Models;
 using ModelWorld.Services;
 
 var isDemo = args.Any(argument => string.Equals(argument, "--demo", StringComparison.OrdinalIgnoreCase));
@@ -10,7 +11,8 @@ var isLiveMode = !isStaticMode;
 var models = isLiveMode ? ModelCatalog.Live : ModelCatalog.All;
 var prompts = PromptCatalog.All;
 var renderer = new ConsoleRenderer();
-var runner = CreateRunner();
+IReadOnlyDictionary<string, ModelPricing>? pricingByModelId = null;
+var runner = await CreateRunnerAsync();
 
 if (runner is null)
 {
@@ -21,7 +23,8 @@ if (runner is null)
 if (isDemo)
 {
 	renderer.RenderIntro(isLiveMode);
-	renderer.RenderModelTable(models);
+	renderer.RenderModelTable(models, pricingByModelId);
+	renderer.RenderEnterpriseChatCostExample(models, EnterpriseChatUsageProfile.MediumCorporate, pricingByModelId);
 	renderer.RenderPromptTable(prompts);
 
 	var demoModels = isLiveMode
@@ -34,7 +37,8 @@ if (isDemo)
 while (true)
 {
 	renderer.RenderIntro(isLiveMode);
-	renderer.RenderModelTable(models);
+	renderer.RenderModelTable(models, pricingByModelId);
+	renderer.RenderEnterpriseChatCostExample(models, EnterpriseChatUsageProfile.MediumCorporate, pricingByModelId);
 	renderer.RenderPromptTable(prompts);
 
 	if (!renderer.ShouldRunComparison())
@@ -69,7 +73,7 @@ async Task RunComparisonAsync(
 	renderer.RenderResults(results);
 }
 
-IModelRunner? CreateRunner()
+async Task<IModelRunner?> CreateRunnerAsync()
 {
 	if (!isLiveMode)
 	{
@@ -88,12 +92,40 @@ IModelRunner? CreateRunner()
 		options.GetMaxOutputTokenCount();
 		options.GetTemperature();
 		options.GetRequestTimeout();
+		var region = options.GetPricingRegion();
+		var pricingEndpoint = options.GetPricingEndpoint();
 
-		return new AzureModelRunner(options);
+		pricingByModelId = await LoadPricingAsync(models, region, pricingEndpoint);
+
+		return new AzureModelRunner(options, pricingByModelId);
 	}
 	catch (InvalidOperationException exception)
 	{
 		renderer.RenderConfigurationError(exception.Message);
 		return null;
+	}
+}
+
+async Task<IReadOnlyDictionary<string, ModelPricing>> LoadPricingAsync(
+	IReadOnlyList<ModelProfile> pricingModels,
+	string region,
+	Uri pricingEndpoint)
+{
+	try
+	{
+		using var httpClient = new HttpClient();
+		var pricingProvider = new AzureRetailPricesPricingProvider(httpClient, pricingEndpoint);
+		return await pricingProvider.GetPricingAsync(pricingModels, region);
+	}
+	catch (Exception exception) when (exception is HttpRequestException or NotSupportedException or System.Text.Json.JsonException or InvalidOperationException or TaskCanceledException)
+	{
+		return pricingModels.ToDictionary(
+			model => model.Id,
+			model => ModelPricing.Unavailable(
+				model,
+				AzureRetailPricesPricingProvider.SourceName,
+				region,
+				$"Pricing lookup failed: {exception.Message}"),
+			StringComparer.OrdinalIgnoreCase);
 	}
 }

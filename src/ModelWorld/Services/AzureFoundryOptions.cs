@@ -4,8 +4,12 @@ public sealed class AzureFoundryOptions
 {
     public const string SectionName = "ModelWorld:Azure";
     public const string DefaultTokenScope = "https://ai.azure.com/.default";
+    public const string DefaultPricingEndpoint = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview";
+    public const string DefaultRegion = "eastus";
 
     public string? Endpoint { get; init; }
+    public string Region { get; init; } = DefaultRegion;
+    public string PricingEndpoint { get; init; } = DefaultPricingEndpoint;
     public int MaxOutputTokenCount { get; init; } = 300;
     public float Temperature { get; init; } = 0.2f;
     public int RequestTimeoutSeconds { get; init; } = 120;
@@ -65,6 +69,36 @@ public sealed class AzureFoundryOptions
         }
 
         return Temperature;
+    }
+
+    public string GetPricingRegion()
+    {
+        if (string.IsNullOrWhiteSpace(Region))
+        {
+            throw new InvalidOperationException("ModelWorld:Azure:Region must be a non-empty Azure region name such as eastus.");
+        }
+
+        return Region.Trim().ToLowerInvariant();
+    }
+
+    public Uri GetPricingEndpoint()
+    {
+        if (string.IsNullOrWhiteSpace(PricingEndpoint))
+        {
+            throw new InvalidOperationException("ModelWorld:Azure:PricingEndpoint must be a non-empty HTTPS URI.");
+        }
+
+        if (!Uri.TryCreate(PricingEndpoint, UriKind.Absolute, out var endpoint))
+        {
+            throw new InvalidOperationException("ModelWorld:Azure:PricingEndpoint must be an absolute URI.");
+        }
+
+        if (endpoint.Scheme != Uri.UriSchemeHttps)
+        {
+            throw new InvalidOperationException("ModelWorld:Azure:PricingEndpoint must use HTTPS.");
+        }
+
+        return endpoint;
     }
 
     public string GetDeploymentName(ModelWorld.Models.ModelProfile model) =>

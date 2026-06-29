@@ -34,10 +34,15 @@ public static class PromptCatalog
             Id: "summarization",
             Domain: "Summarization",
             Title: "Release Note Brief",
-            PromptText: "Summarize for a product manager: The prototype now compares five AI models across prompt outputs, latency, tokens, and estimated cost. Data is static today and will later be replaced by Azure AI Foundry calls.",
-            Intent: "Compare concise synthesis and audience fit.",
-            ExpectedBehavior: "Highlight comparison value, static data caveat, and future Foundry integration.",
-            Reveals: "How well the model adapts wording to a business audience."),
+            PromptText: """
+            You are writing a release note brief for a product manager preparing a stakeholder update. Summarize the following change in 45-60 words. Keep it to 2-3 sentences, use concrete product language, and include only the user value, current limitation, and next milestone.
+
+            Context:
+            Model World is an educational .NET console app for developers learning AI model evaluation. The prototype can run the same prompt across a curated set of five models and displays each model's response, latency in milliseconds, prompt, completion, and total token usage, finish reason, and estimated cost. The latest demo can use live Azure AI Foundry requests for deployed models, while static simulation remains available for free local demos. The feature is meant to help teams discuss model quality, speed, and cost tradeoffs before choosing a model for a scenario. Pricing is still estimated from catalog metadata and should be treated as illustrative rather than a bill.
+            """,
+            Intent: "Compare audience-aware synthesis from a realistic product update.",
+            ExpectedBehavior: "Produce a short PM-ready brief that explains comparison value, the estimated pricing caveat, and the next Foundry integration milestone.",
+            Reveals: "How well the model prioritizes product impact, caveats, and roadmap context for a business audience."),
         new(
             Id: "structured-output",
             Domain: "Structured Output",

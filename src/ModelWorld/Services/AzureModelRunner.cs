@@ -12,16 +12,26 @@ public sealed class AzureModelRunner : IModelRunner
 {
     private readonly AzureFoundryOptions options;
     private readonly IFoundryChatClient chatClient;
+    private readonly IReadOnlyDictionary<string, ModelPricing> pricingByModelId;
 
     public AzureModelRunner(AzureFoundryOptions options)
         : this(options, new OpenAiFoundryChatClient(options.GetNormalizedEndpoint()))
     {
     }
 
-    public AzureModelRunner(AzureFoundryOptions options, IFoundryChatClient chatClient)
+    public AzureModelRunner(AzureFoundryOptions options, IReadOnlyDictionary<string, ModelPricing> pricingByModelId)
+        : this(options, new OpenAiFoundryChatClient(options.GetNormalizedEndpoint()), pricingByModelId)
+    {
+    }
+
+    public AzureModelRunner(
+        AzureFoundryOptions options,
+        IFoundryChatClient chatClient,
+        IReadOnlyDictionary<string, ModelPricing>? pricingByModelId = null)
     {
         this.options = options;
         this.chatClient = chatClient;
+        this.pricingByModelId = pricingByModelId ?? CreateCatalogPricingMap(ModelWorld.Catalogs.ModelCatalog.Live);
     }
 
     public async Task<IReadOnlyList<SimulationResult>> RunAsync(
@@ -65,11 +75,7 @@ public sealed class AzureModelRunner : IModelRunner
                 cancellationToken);
 
             stopwatch.Stop();
-            var cost = CostCalculator.Estimate(
-                response.PromptTokens,
-                response.CompletionTokens,
-                model.InputCostPerMillionTokensUsd,
-                model.OutputCostPerMillionTokensUsd);
+            var cost = EstimateCost(model, response);
 
             return new SimulationResult(
                 Model: model,
@@ -102,8 +108,37 @@ public sealed class AzureModelRunner : IModelRunner
             CompletionTokens: 0,
             Elapsed: elapsed,
             FinishReason: "error",
-            Cost: new CostEstimate(0, 0, 0),
+            Cost: CostEstimate.Unavailable("No successful model response."),
             Note: CreateFailureNote(exception));
+
+    private CostEstimate EstimateCost(ModelProfile model, FoundryChatResponse response)
+    {
+        if (!pricingByModelId.TryGetValue(model.Id, out var pricing) || !pricing.IsAvailable)
+        {
+            return CostEstimate.Unavailable(pricing?.Source);
+        }
+
+        return CostCalculator.Estimate(
+            response.PromptTokens,
+            response.CompletionTokens,
+            pricing.InputCostPerMillionTokensUsd,
+            pricing.OutputCostPerMillionTokensUsd) with
+        {
+            Source = pricing.Source
+        };
+    }
+
+    private static IReadOnlyDictionary<string, ModelPricing> CreateCatalogPricingMap(IReadOnlyList<ModelProfile> models) =>
+        models.ToDictionary(
+            model => model.Id,
+            model => ModelPricing.Available(
+                model,
+                model.InputCostPerMillionTokensUsd,
+                model.OutputCostPerMillionTokensUsd,
+                source: "Local catalog pricing",
+                region: "static",
+                effectiveStartDate: null),
+            StringComparer.OrdinalIgnoreCase);
 
     private static bool IsExpectedAzureFailure(Exception exception) =>
         exception is OperationCanceledException

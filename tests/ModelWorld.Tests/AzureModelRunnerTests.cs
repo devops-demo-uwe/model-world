@@ -1,4 +1,5 @@
 using ModelWorld.Catalogs;
+using ModelWorld.Models;
 using ModelWorld.Services;
 using OpenAI.Chat;
 
@@ -39,6 +40,19 @@ public sealed class AzureModelRunnerTests
     }
 
     [Fact]
+    public void AzureFoundryOptions_ValidatesPricingConfiguration()
+    {
+        var options = new AzureFoundryOptions
+        {
+            Region = "EastUS",
+            PricingEndpoint = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview"
+        };
+
+        Assert.Equal("eastus", options.GetPricingRegion());
+        Assert.Equal("https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview", options.GetPricingEndpoint().ToString());
+    }
+
+    [Fact]
     public async Task RunAsync_MapsLiveResponseToSimulationResult()
     {
         var runner = new AzureModelRunner(new AzureFoundryOptions(), new FakeFoundryChatClient(
@@ -61,6 +75,67 @@ public sealed class AzureModelRunnerTests
         Assert.Equal("stop", result.FinishReason);
         Assert.True(result.Cost.TotalCostUsd > 0);
         Assert.Equal("Live Azure AI Foundry request.", result.Note);
+    }
+
+    [Fact]
+    public async Task RunAsync_UsesResolvedPricingForLiveCostEstimate()
+    {
+        var model = ModelCatalog.GetById("gpt-54-mini");
+        var pricingByModelId = new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
+        {
+            [model.Id] = ModelPricing.Available(
+                model,
+                inputCostPerMillionTokensUsd: 10.00m,
+                outputCostPerMillionTokensUsd: 20.00m,
+                source: AzureRetailPricesPricingProvider.SourceName,
+                region: "eastus",
+                effectiveStartDate: new DateTimeOffset(2026, 6, 1, 0, 0, 0, TimeSpan.Zero))
+        };
+        var runner = new AzureModelRunner(new AzureFoundryOptions(), new FakeFoundryChatClient(
+            new FoundryChatResponse(
+                Output: "The original price was $80.",
+                PromptTokens: 100,
+                CompletionTokens: 50,
+                FinishReason: "stop",
+                Note: null)),
+            pricingByModelId);
+        var prompt = PromptCatalog.GetById("math-check");
+
+        var results = await runner.RunAsync([model], [prompt]);
+
+        var result = Assert.Single(results);
+        Assert.True(result.Cost.IsAvailable);
+        Assert.Equal(0.001m, result.Cost.InputCostUsd);
+        Assert.Equal(0.001m, result.Cost.OutputCostUsd);
+        Assert.Equal(0.002m, result.Cost.TotalCostUsd);
+        Assert.Equal(AzureRetailPricesPricingProvider.SourceName, result.Cost.Source);
+    }
+
+    [Fact]
+    public async Task RunAsync_KeepsResultButMarksCostUnavailableWhenPricingIsUnavailable()
+    {
+        var model = ModelCatalog.GetById("gpt-54-mini");
+        var pricingByModelId = new Dictionary<string, ModelPricing>(StringComparer.OrdinalIgnoreCase)
+        {
+            [model.Id] = ModelPricing.Unavailable(model, AzureRetailPricesPricingProvider.SourceName, "eastus", "No meter match.")
+        };
+        var runner = new AzureModelRunner(new AzureFoundryOptions(), new FakeFoundryChatClient(
+            new FoundryChatResponse(
+                Output: "The original price was $80.",
+                PromptTokens: 24,
+                CompletionTokens: 12,
+                FinishReason: "stop",
+                Note: null)),
+            pricingByModelId);
+        var prompt = PromptCatalog.GetById("math-check");
+
+        var results = await runner.RunAsync([model], [prompt]);
+
+        var result = Assert.Single(results);
+        Assert.Equal("stop", result.FinishReason);
+        Assert.Equal(36, result.TotalTokens);
+        Assert.False(result.Cost.IsAvailable);
+        Assert.Equal(0, result.Cost.TotalCostUsd);
     }
 
     [Fact]

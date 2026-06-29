@@ -1,5 +1,6 @@
 using System.Globalization;
 using ModelWorld.Models;
+using ModelWorld.Services;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -96,10 +97,13 @@ public sealed class ConsoleRenderer
             .ToArray();
     }
 
-    public void RenderModelTable(IReadOnlyList<ModelProfile> models)
+    public void RenderModelTable(
+        IReadOnlyList<ModelProfile> models,
+        IReadOnlyDictionary<string, ModelPricing>? pricingByModelId = null)
     {
+        var pricingSummary = BuildPricingSummary(models, pricingByModelId);
         var table = new Table()
-            .Title($"[bold {Accent}]{NerdModel} Model Catalog[/]")
+            .Title($"[bold {Accent}]{NerdModel} Model Catalog[/]\n[{Muted}]{Markup.Escape(pricingSummary.Header)}[/]")
             .Border(TableBorder.HeavyHead)
             .BorderColor(AccentColor)
             .Width(LayoutWidth)
@@ -110,12 +114,69 @@ public sealed class ConsoleRenderer
 
         foreach (var model in models)
         {
+            var pricing = GetDisplayPricing(model, pricingByModelId);
             table.AddRow(
                 $"[bold white]{Markup.Escape(model.DisplayName)}[/]",
                 $"[{AccentAlt}]{Markup.Escape(model.Family)}[/]\n[{Muted}]{Markup.Escape(model.RecommendedUseCases)}[/]",
                 $"[{Success}]{FormatWholeNumber(model.ContextWindowTokens)} ctx[/]\n[{Warning}]{FormatWholeNumber(model.TypicalLatencyMilliseconds)} ms[/]",
-                $"[{Accent}]${FormatCurrencyValue(model.InputCostPerMillionTokensUsd)} in[/]\n[{AccentAlt}]${FormatCurrencyValue(model.OutputCostPerMillionTokensUsd)} out[/]");
+                FormatPricingCell(pricing));
         }
+
+        table.Caption($"[{Muted}]{Markup.Escape(BuildModelCatalogCaption(pricingSummary))}[/]");
+
+        AnsiConsole.Write(table);
+        AnsiConsole.WriteLine();
+    }
+
+    public void RenderEnterpriseChatCostExample(
+        IReadOnlyList<ModelProfile> models,
+        EnterpriseChatUsageProfile usageProfile,
+        IReadOnlyDictionary<string, ModelPricing>? pricingByModelId = null)
+    {
+        var assumptions =
+            $"[bold white]{Markup.Escape(usageProfile.Name)}[/]\n" +
+            $"[{Muted}]{FormatWholeNumber(usageProfile.EmployeeCount)} employees; {FormatPercent(usageProfile.DailyActiveUserRate)} daily active; " +
+            $"{FormatWholeNumber(usageProfile.ChatsPerActiveUserPerWorkday)} chats per active user per workday; " +
+            $"{FormatWholeNumber(usageProfile.WorkdaysPerMonth)} workdays/month; " +
+            $"{FormatWholeNumber(usageProfile.AverageInputTokensPerChat)} input + {FormatWholeNumber(usageProfile.AverageOutputTokensPerChat)} output tokens/chat.[/]";
+
+        WriteFullWidth(new Panel(assumptions)
+            .Border(BoxBorder.Rounded)
+            .BorderColor(WarningColor)
+            .Header($" [bold {Warning}]{NerdCost} Enterprise Cost Example[/] ")
+            .Padding(1, 0)
+            .Expand());
+        AnsiConsole.WriteLine();
+
+        var table = new Table()
+            .Border(TableBorder.HeavyHead)
+            .BorderColor(WarningColor)
+            .Width(LayoutWidth)
+            .AddColumn(new TableColumn($"[bold {Accent}]Model[/]").NoWrap())
+            .AddColumn(new TableColumn($"[bold {Success}]Monthly usage[/]").RightAligned())
+            .AddColumn(new TableColumn($"[bold {AccentAlt}]Estimated model cost[/]").RightAligned())
+            .AddColumn(new TableColumn($"[bold {Warning}]Cost / employee[/]").RightAligned());
+
+        foreach (var model in models)
+        {
+            var pricing = GetDisplayPricing(model, pricingByModelId);
+            var estimate = pricing.IsAvailable
+                ? CostCalculator.Estimate(
+                    usageProfile.MonthlyInputTokens,
+                    usageProfile.MonthlyOutputTokens,
+                    pricing.InputCostPerMillionTokensUsd,
+                    pricing.OutputCostPerMillionTokensUsd)
+                : CostEstimate.Unavailable(pricing.Source);
+            table.AddRow(
+                $"[bold white]{Markup.Escape(model.DisplayName)}[/]",
+                $"[{Accent}]{FormatCompactNumber(usageProfile.MonthlyInputTokens)}[/] input\n[{AccentAlt}]{FormatCompactNumber(usageProfile.MonthlyOutputTokens)}[/] output\n[{Success}]{FormatWholeNumber(usageProfile.MonthlyChatCount)}[/] chats",
+                FormatMonthlyEstimate(estimate),
+                estimate.IsAvailable
+                    ? $"[{Warning}]${FormatMonthlyCost(estimate.TotalCostUsd / usageProfile.EmployeeCount)} / mo[/]"
+                    : $"[{Muted}]unavailable[/]");
+        }
+
+        table.Caption($"[{Muted}]Illustrative estimate only. Excludes hosting, search/retrieval, storage, monitoring, discounts, taxes, and regional price differences.[/]");
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
@@ -180,7 +241,7 @@ public sealed class ConsoleRenderer
                 $"[bold white]{Markup.Escape(result.Model.DisplayName)}[/]",
                 $"[{AccentAlt}]{Markup.Escape(result.Prompt.Title)}[/]",
                 $"[{Warning}]{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms[/]\n[{Success}]{FormatWholeNumber(result.TotalTokens)} tok[/]",
-                $"[{Accent}]${FormatCost(result.Cost.TotalCostUsd)}[/]",
+                FormatRunCost(result.Cost),
                 $"[{Success}]{Markup.Escape(result.FinishReason)}[/]");
         }
 
@@ -287,7 +348,7 @@ public sealed class ConsoleRenderer
 
         table.AddRow(BuildRow($"[{Warning}]󰔟 Elapsed[/]", results, result => $"[{Warning}]{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms[/]"));
         table.AddRow(BuildRow($"[{Success}]󰓡 Tokens[/]", results, result => $"[{Accent}]{FormatWholeNumber(result.PromptTokens)}[/] prompt\n[{AccentAlt}]{FormatWholeNumber(result.CompletionTokens)}[/] completion\n[{Success}]{FormatWholeNumber(result.TotalTokens)}[/] total"));
-        table.AddRow(BuildRow($"[{AccentAlt}]{NerdCost} Estimated cost[/]", results, result => $"[{Accent}]${FormatCost(result.Cost.TotalCostUsd)}[/]"));
+        table.AddRow(BuildRow($"[{AccentAlt}]{NerdCost} Estimated cost[/]", results, result => FormatRunCost(result.Cost)));
         table.AddRow(BuildRow($"[{Success}]󰄬 Finish[/]", results, result => $"[{Success}]{Markup.Escape(result.FinishReason)}[/]"));
         table.AddRow(BuildRow("Note", results, result => Markup.Escape(result.Note ?? "")));
         table.AddRow(BuildRow($"[bold {Accent}]󰦨 Output[/]", results, result => $"[white]{Markup.Escape(result.Output)}[/]"));
@@ -305,6 +366,127 @@ public sealed class ConsoleRenderer
         Func<SimulationResult, string> valueFactory) =>
         [label, .. results.Select(valueFactory)];
 
+    private static DisplayPricing GetDisplayPricing(
+        ModelProfile model,
+        IReadOnlyDictionary<string, ModelPricing>? pricingByModelId)
+    {
+        if (pricingByModelId is null)
+        {
+            return new DisplayPricing(
+                model.InputCostPerMillionTokensUsd,
+                model.OutputCostPerMillionTokensUsd,
+                IsAvailable: true,
+                Source: "Local catalog pricing",
+                Region: "static",
+                EffectiveStartDate: null);
+        }
+
+        if (pricingByModelId.TryGetValue(model.Id, out var pricing) && pricing.IsAvailable)
+        {
+            return new DisplayPricing(
+                pricing.InputCostPerMillionTokensUsd,
+                pricing.OutputCostPerMillionTokensUsd,
+                IsAvailable: true,
+                pricing.Source,
+                pricing.Region,
+                pricing.EffectiveStartDate);
+        }
+
+        return new DisplayPricing(
+            InputCostPerMillionTokensUsd: 0,
+            OutputCostPerMillionTokensUsd: 0,
+            IsAvailable: false,
+            Source: pricingByModelId.TryGetValue(model.Id, out var unavailablePricing)
+                ? unavailablePricing.Source
+                : AzureRetailPricesPricingProvider.SourceName,
+            Region: pricingByModelId.TryGetValue(model.Id, out var regionPricing)
+                ? regionPricing.Region
+                : "unknown",
+            EffectiveStartDate: null);
+    }
+
+    private static string FormatPricingCell(DisplayPricing pricing)
+    {
+        if (!pricing.IsAvailable)
+        {
+            return $"[{Muted}]pricing unavailable[/]";
+        }
+
+        return $"[{Accent}]${FormatCurrencyValue(pricing.InputCostPerMillionTokensUsd)} in[/]\n" +
+            $"[{AccentAlt}]${FormatCurrencyValue(pricing.OutputCostPerMillionTokensUsd)} out[/]";
+    }
+
+    private static string BuildModelCatalogCaption(PricingSummary pricingSummary)
+    {
+        const string scaleExplanation = "Scale: ctx = maximum context window in tokens; ms = catalog typical latency estimate.";
+
+        return string.IsNullOrWhiteSpace(pricingSummary.Caption)
+            ? scaleExplanation
+            : $"{pricingSummary.Caption} {scaleExplanation}";
+    }
+
+    private static PricingSummary BuildPricingSummary(
+        IReadOnlyList<ModelProfile> models,
+        IReadOnlyDictionary<string, ModelPricing>? pricingByModelId)
+    {
+        var displayPricing = models
+            .Select(model => GetDisplayPricing(model, pricingByModelId))
+            .ToArray();
+        var source = displayPricing
+            .Select(pricing => pricing.Source)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .SingleOrDefault() ?? "Mixed pricing sources";
+        var region = displayPricing
+            .Select(pricing => pricing.Region)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .SingleOrDefault() ?? "mixed regions";
+        var availablePricing = displayPricing
+            .Where(pricing => pricing.IsAvailable)
+            .ToArray();
+
+        var header = $"Pricing: {source}; region: {region}; USD per 1M tokens";
+        if (availablePricing.Length == 0)
+        {
+            return new PricingSummary(header, "No confident pricing meter matches were found; costs are shown as unavailable.");
+        }
+
+        var effectiveDates = availablePricing
+            .Select(pricing => pricing.EffectiveStartDate)
+            .OfType<DateTimeOffset>()
+            .Select(date => date.Date)
+            .Distinct()
+            .Order()
+            .ToArray();
+        var unavailableCount = displayPricing.Count(pricing => !pricing.IsAvailable);
+        var captionParts = new List<string>();
+
+        if (effectiveDates.Length == 1)
+        {
+            header += $"; meter date: {effectiveDates[0].ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
+        }
+        else if (effectiveDates.Length > 1)
+        {
+            header += $"; meter dates: {effectiveDates[0].ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} to {effectiveDates[^1].ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}";
+        }
+
+        if (unavailableCount > 0)
+        {
+            captionParts.Add($"Pricing unavailable for {unavailableCount} model(s).");
+        }
+
+        return new PricingSummary(header, string.Join(' ', captionParts));
+    }
+
+    private static string FormatRunCost(CostEstimate estimate) =>
+        estimate.IsAvailable
+            ? $"[{Accent}]${FormatCost(estimate.TotalCostUsd)}[/]"
+            : $"[{Muted}]unavailable[/]";
+
+    private static string FormatMonthlyEstimate(CostEstimate estimate) =>
+        estimate.IsAvailable
+            ? $"[{AccentAlt}]${FormatMonthlyCost(estimate.TotalCostUsd)} / mo[/]"
+            : $"[{Muted}]unavailable[/]";
+
     private static string FormatWholeNumber(int value) =>
         value.ToString("N0", CultureInfo.InvariantCulture);
 
@@ -316,4 +498,42 @@ public sealed class ConsoleRenderer
 
     private static string FormatCost(decimal value) =>
         value.ToString("0.000000", CultureInfo.InvariantCulture);
+
+    private static string FormatMonthlyCost(decimal value) =>
+        value.ToString("N2", CultureInfo.InvariantCulture);
+
+    private static string FormatPercent(decimal value) =>
+        $"{value * 100m:0}%";
+
+    private static string FormatCompactNumber(decimal value)
+    {
+        if (value >= 1_000_000_000m)
+        {
+            return $"{(value / 1_000_000_000m).ToString("0.0", CultureInfo.InvariantCulture)}B";
+        }
+
+        if (value >= 1_000_000m)
+        {
+            return $"{(value / 1_000_000m).ToString("0.0", CultureInfo.InvariantCulture)}M";
+        }
+
+        if (value >= 1_000m)
+        {
+            return $"{(value / 1_000m).ToString("0.0", CultureInfo.InvariantCulture)}K";
+        }
+
+        return value.ToString("N0", CultureInfo.InvariantCulture);
+    }
+
+    private sealed record DisplayPricing(
+        decimal InputCostPerMillionTokensUsd,
+        decimal OutputCostPerMillionTokensUsd,
+        bool IsAvailable,
+        string Source,
+        string Region,
+        DateTimeOffset? EffectiveStartDate);
+
+    private sealed record PricingSummary(
+        string Header,
+        string Caption);
 }

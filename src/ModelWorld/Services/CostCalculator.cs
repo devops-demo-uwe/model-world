@@ -20,4 +20,30 @@ public static class CostCalculator
 
         return new CostEstimate(inputCost, outputCost, inputCost + outputCost);
     }
+
+    public static CostEstimate Estimate(
+        decimal promptTokens,
+        decimal completionTokens,
+        decimal inputCostPerMillionTokensUsd,
+        decimal outputCostPerMillionTokensUsd)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(promptTokens);
+        ArgumentOutOfRangeException.ThrowIfNegative(completionTokens);
+        ArgumentOutOfRangeException.ThrowIfNegative(inputCostPerMillionTokensUsd);
+        ArgumentOutOfRangeException.ThrowIfNegative(outputCostPerMillionTokensUsd);
+
+        var inputCost = promptTokens / 1_000_000m * inputCostPerMillionTokensUsd;
+        var outputCost = completionTokens / 1_000_000m * outputCostPerMillionTokensUsd;
+
+        return new CostEstimate(inputCost, outputCost, inputCost + outputCost);
+    }
+
+    public static CostEstimate EstimateMonthlyEnterpriseChatCost(
+        EnterpriseChatUsageProfile usageProfile,
+        ModelProfile model) =>
+        Estimate(
+            usageProfile.MonthlyInputTokens,
+            usageProfile.MonthlyOutputTokens,
+            model.InputCostPerMillionTokensUsd,
+            model.OutputCostPerMillionTokensUsd);
 }

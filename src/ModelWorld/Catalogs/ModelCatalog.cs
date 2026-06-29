@@ -33,7 +33,8 @@ public static class ModelCatalog
             InputCostPerMillionTokensUsd: 3.00m,
             OutputCostPerMillionTokensUsd: 12.00m,
             TypicalLatencyMilliseconds: 3_850,
-            BehaviorNotes: "Use as the flagship baseline for answer quality and polish."),
+            BehaviorNotes: "Use as the flagship baseline for answer quality and polish.",
+            PricingLookupHints: OpenAiPricingHints("Azure OpenAI GPT5", "5.4 inp", "5.4 opt", "gpt-5.4")),
         new(
             Id: "gpt-54-mini",
             DisplayName: "GPT-5.4 mini",
@@ -47,7 +48,8 @@ public static class ModelCatalog
             InputCostPerMillionTokensUsd: 0.60m,
             OutputCostPerMillionTokensUsd: 2.40m,
             TypicalLatencyMilliseconds: 1_150,
-            BehaviorNotes: "Practical baseline for cost-aware production-style workloads."),
+            BehaviorNotes: "Practical baseline for cost-aware production-style workloads.",
+            PricingLookupHints: OpenAiPricingHints("Azure OpenAI GPT5", "5.4 mini inp", "5.4 mini opt", "gpt-5.4-mini")),
         new(
             Id: "o4-mini",
             DisplayName: "o4-mini",
@@ -61,7 +63,8 @@ public static class ModelCatalog
             InputCostPerMillionTokensUsd: 1.10m,
             OutputCostPerMillionTokensUsd: 4.40m,
             TypicalLatencyMilliseconds: 2_050,
-            BehaviorNotes: "Useful for teaching how reasoning-specialized models differ."),
+            BehaviorNotes: "Useful for teaching how reasoning-specialized models differ.",
+            PricingLookupHints: OpenAiPricingHints("Azure OpenAI", "o4 mini", "o4-mini", "o4-mini 0416")),
         new(
             Id: "deepseek-v4-pro",
             DisplayName: "DeepSeek-V4-Pro",
@@ -75,7 +78,8 @@ public static class ModelCatalog
             InputCostPerMillionTokensUsd: 0.50m,
             OutputCostPerMillionTokensUsd: 1.50m,
             TypicalLatencyMilliseconds: 2_550,
-            BehaviorNotes: "Shows model-family differences beyond size and price."),
+            BehaviorNotes: "Shows model-family differences beyond size and price.",
+            PricingLookupHints: FoundryPricingHints("Azure Fireworks Models", "DeepSeek", "DeepSeek-V4-Pro", "DeepSeek V4 Pro")),
         new(
             Id: "llama-33-70b-instruct",
             DisplayName: "Llama 3.3 70B Instruct",
@@ -89,7 +93,8 @@ public static class ModelCatalog
             InputCostPerMillionTokensUsd: 0.80m,
             OutputCostPerMillionTokensUsd: 0.80m,
             TypicalLatencyMilliseconds: 2_700,
-            BehaviorNotes: "Useful comparison point with a slightly different writing style.")
+                BehaviorNotes: "Useful comparison point with a slightly different writing style.",
+                PricingLookupHints: FoundryPricingHints("Azure Llama Models", "Llama", "3.3 70b", "Llama-3.3-70B-Instruct", "Llama 3.3 70B Instruct"))
     ];
 
     public static IReadOnlyList<ModelProfile> Live { get; } =
@@ -103,4 +108,20 @@ public static class ModelCatalog
 
     public static IReadOnlyList<ModelProfile> GetDefaultLiveComparisonModels() =>
         DefaultLiveComparisonModelIds.Select(GetById).ToArray();
+
+    private static PricingLookupHints OpenAiPricingHints(string productName, params string[] skuNames) =>
+        new(
+            ProductNameContains: [productName],
+            SkuNameContains: skuNames,
+            InputMeterNameContains: ["input", "inp"],
+            OutputMeterNameContains: ["output", "out", "outp", "opt"],
+            DeploymentTypeContains: ["global"]);
+
+    private static PricingLookupHints FoundryPricingHints(params string[] modelNames) =>
+        new(
+            ProductNameContains: ["Foundry", .. modelNames],
+            SkuNameContains: modelNames,
+            InputMeterNameContains: ["input", "inp"],
+            OutputMeterNameContains: ["output", "out", "outp", "opt"],
+            DeploymentTypeContains: ["global"]);
 }

@@ -5,7 +5,7 @@ namespace ModelWorld.Tests;
 public sealed class CatalogTests
 {
     [Fact]
-    public void ModelCatalog_ContainsFiveUniqueModelsWithPricing()
+    public void ModelCatalog_ContainsFiveUniqueModelsWithPricingMetadata()
     {
         var models = ModelCatalog.All;
 
@@ -13,6 +13,10 @@ public sealed class CatalogTests
         Assert.Equal(5, models.Select(model => model.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.All(models, model => Assert.True(model.InputCostPerMillionTokensUsd > 0));
         Assert.All(models, model => Assert.True(model.OutputCostPerMillionTokensUsd > 0));
+        Assert.All(models, model => Assert.NotEmpty(model.PricingLookupHints.ProductNameContains));
+        Assert.All(models, model => Assert.NotEmpty(model.PricingLookupHints.SkuNameContains));
+        Assert.All(models, model => Assert.NotEmpty(model.PricingLookupHints.InputMeterNameContains));
+        Assert.All(models, model => Assert.NotEmpty(model.PricingLookupHints.OutputMeterNameContains));
         Assert.All(models, model => Assert.False(string.IsNullOrWhiteSpace(model.RecommendedUseCases)));
     }
 

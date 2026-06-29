@@ -48,7 +48,7 @@ public sealed class StaticModelSimulator : IModelRunner
         "math-check" => 34,
         "reasoning-schedule" => 55,
         "coding-review" => 31,
-        "summarization" => 43,
+        "summarization" => 165,
         "structured-output" => 39,
         _ => Math.Max(24, prompt.PromptText.Length / 4)
     };
@@ -60,7 +60,7 @@ public sealed class StaticModelSimulator : IModelRunner
             "math-check" => 47,
             "reasoning-schedule" => 68,
             "coding-review" => 54,
-            "summarization" => 42,
+            "summarization" => 50,
             "structured-output" => 28,
             _ => 48
         };
@@ -122,9 +122,9 @@ public sealed class StaticModelSimulator : IModelRunner
         },
         "summarization" => model.Id switch
         {
-            "gpt-54-mini" => "Model World gives PMs a quick way to compare model quality, speed, token use, and estimated cost across deployed Foundry models.",
-            "llama-33-70b-instruct" => "Model World demonstrates side-by-side model comparison across deployed Azure AI Foundry models, including an open instruct family.",
-            _ => "Model World offers a side-by-side comparison flow for five AI models, showing outputs, latency, tokens, and estimated cost from live Azure AI Foundry runs."
+            "gpt-54-mini" => "Model World helps teams compare model quality, speed, token usage, and estimated cost in one console view. Static demos remain available and pricing is illustrative, while the next milestone is tighter Azure AI Foundry integration for realistic model comparisons.",
+            "llama-33-70b-instruct" => "Model World gives stakeholders a compact way to compare five AI models before choosing one for a scenario. Cost remains an estimate and static mode is still available; the next step is improving Foundry coverage and pricing fidelity.",
+            _ => "Model World now compares five AI models side by side, helping teams discuss output quality, latency, tokens, and estimated cost. Pricing remains illustrative, and the next milestone is deeper Azure AI Foundry integration for more realistic comparisons."
         },
         "structured-output" => model.Id switch
         {
