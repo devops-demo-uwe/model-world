@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using ModelWorld.Models;
 using ModelWorld.Services;
 using Spectre.Console;
@@ -350,8 +351,8 @@ public sealed class ConsoleRenderer
         table.AddRow(BuildRow($"[{Success}]󰓡 Tokens[/]", results, result => $"[{Accent}]{FormatWholeNumber(result.PromptTokens)}[/] prompt\n[{AccentAlt}]{FormatWholeNumber(result.CompletionTokens)}[/] completion\n[{Success}]{FormatWholeNumber(result.TotalTokens)}[/] total"));
         table.AddRow(BuildRow($"[{AccentAlt}]{NerdCost} Estimated cost[/]", results, result => FormatRunCost(result.Cost)));
         table.AddRow(BuildRow($"[{Success}]󰄬 Finish[/]", results, result => $"[{Success}]{Markup.Escape(result.FinishReason)}[/]"));
-        table.AddRow(BuildRow("Note", results, result => Markup.Escape(result.Note ?? "")));
-        table.AddRow(BuildRow($"[bold {Accent}]󰦨 Output[/]", results, result => $"[white]{Markup.Escape(result.Output)}[/]"));
+        table.AddRow(BuildRow($"[{Muted}]Note[/]", results, result => $"[{Muted}]{Markup.Escape(result.Note ?? "")}[/]"));
+        table.AddRow(BuildRenderableRow($"[bold {Accent}]󰦨 Output[/]", results, result => FormatResultOutput(result.Output)));
 
         AnsiConsole.Write(table);
         AnsiConsole.WriteLine();
@@ -365,6 +366,114 @@ public sealed class ConsoleRenderer
         IReadOnlyList<SimulationResult> results,
         Func<SimulationResult, string> valueFactory) =>
         [label, .. results.Select(valueFactory)];
+
+    private static IRenderable[] BuildRenderableRow(
+        string label,
+        IReadOnlyList<SimulationResult> results,
+        Func<SimulationResult, IRenderable> valueFactory) =>
+        [new Markup(label), .. results.Select(valueFactory)];
+
+    private static IRenderable FormatResultOutput(string output)
+    {
+        var formattedOutput = FormatResultOutputMarkup(output);
+        var markup = new Markup(formattedOutput);
+
+        try
+        {
+            _ = markup.GetSegments(AnsiConsole.Console).FirstOrDefault();
+            return markup;
+        }
+        catch (Exception)
+        {
+            return new Markup($"[white]{Markup.Escape(output)}[/]");
+        }
+    }
+
+    internal static string FormatResultOutputMarkup(string output)
+    {
+        var builder = new StringBuilder(output.Length + 32);
+        var lines = output.ReplaceLineEndings("\n").Split('\n');
+
+        for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
+        {
+            if (lineIndex > 0)
+            {
+                builder.AppendLine();
+            }
+
+            builder.Append(FormatMarkdownLine(lines[lineIndex]));
+        }
+
+        return builder.ToString();
+    }
+
+    private static string FormatMarkdownLine(string line)
+    {
+        var trimmed = line.TrimStart();
+        var leadingWhitespace = line[..^trimmed.Length];
+
+        if (trimmed.StartsWith("### ", StringComparison.Ordinal))
+        {
+            return Markup.Escape(leadingWhitespace) + $"[bold {Accent}]{FormatInlineMarkdown(trimmed[4..])}[/]";
+        }
+
+        if (trimmed.StartsWith("## ", StringComparison.Ordinal))
+        {
+            return Markup.Escape(leadingWhitespace) + $"[bold {AccentAlt}]{FormatInlineMarkdown(trimmed[3..])}[/]";
+        }
+
+        if (trimmed.StartsWith("# ", StringComparison.Ordinal))
+        {
+            return Markup.Escape(leadingWhitespace) + $"[bold {Success}]{FormatInlineMarkdown(trimmed[2..])}[/]";
+        }
+
+        return FormatInlineMarkdown(line);
+    }
+
+    private static string FormatInlineMarkdown(string text)
+    {
+        var builder = new StringBuilder(text.Length + 16);
+
+        for (var index = 0; index < text.Length; index++)
+        {
+            if (text[index] == '`')
+            {
+                var endIndex = text.IndexOf('`', index + 1);
+                if (endIndex > index)
+                {
+                    builder.Append($"[grey on #1f2937] {Markup.Escape(text[(index + 1)..endIndex])} [/]");
+                    index = endIndex;
+                    continue;
+                }
+            }
+
+            if (index + 1 < text.Length && text[index] == '*' && text[index + 1] == '*')
+            {
+                var endIndex = text.IndexOf("**", index + 2, StringComparison.Ordinal);
+                if (endIndex > index)
+                {
+                    builder.Append($"[bold]{Markup.Escape(text[(index + 2)..endIndex])}[/]");
+                    index = endIndex + 1;
+                    continue;
+                }
+            }
+
+            if (index + 1 < text.Length && text[index] == '_' && text[index + 1] == '_')
+            {
+                var endIndex = text.IndexOf("__", index + 2, StringComparison.Ordinal);
+                if (endIndex > index)
+                {
+                    builder.Append($"[bold]{Markup.Escape(text[(index + 2)..endIndex])}[/]");
+                    index = endIndex + 1;
+                    continue;
+                }
+            }
+
+            builder.Append(Markup.Escape(text[index].ToString()));
+        }
+
+        return builder.ToString();
+    }
 
     private static DisplayPricing GetDisplayPricing(
         ModelProfile model,

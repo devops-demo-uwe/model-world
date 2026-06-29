@@ -9,11 +9,21 @@ public static class PromptCatalog
         new(
             Id: "math-check",
             Domain: "Mathematics",
-            Title: "Discount Reversal",
-            PromptText: "A jacket is discounted by 20% and now costs $64. What was the original price? Show the calculation briefly.",
-            Intent: "Check arithmetic and explanation quality.",
-            ExpectedBehavior: "Recover the original price by dividing 64 by 0.8, yielding $80.",
-            Reveals: "Whether the model can avoid the common mistake of adding 20% back to $64."),
+            Title: "Rental Truck Choice",
+            PromptText: """
+            You are renting a moving truck for 3 days and will drive 486 miles.
+
+            Plan A costs $79 per day, includes 100 miles per day, and charges $0.59 for each extra mile. Plan A also has a $35 coupon applied before tax.
+            Plan B costs $109 per day with unlimited miles, but adds a 9.5% insurance fee on the daily charge.
+            Both plans add 8.25% sales tax after discounts, mileage charges, and fees.
+
+            Which plan is cheaper? Return exactly these 2 lines and no extra explanation:
+            Plan A total: <amount>
+            Cheaper plan: <plan> by <amount>
+            """,
+            Intent: "Stress everyday multi-step arithmetic, included-mile accounting, selective discounts and fees, tax order, comparison, and strict concise formatting.",
+            ExpectedBehavior: "Return only the requested two lines: Plan A total is $337.46, and Plan A is cheaper by $50.15.",
+            Reveals: "Whether the model handles included miles across multiple days, extra-mile charges, a coupon applied before tax, an insurance fee that only applies to one plan, tax order, rounding, and concise answer formatting."),
         new(
             Id: "reasoning-schedule",
             Domain: "Reasoning",

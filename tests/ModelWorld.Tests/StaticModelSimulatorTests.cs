@@ -22,6 +22,9 @@ public sealed class StaticModelSimulatorTests
         Assert.True(firstResult.PromptTokens > 0);
         Assert.True(firstResult.CompletionTokens > 0);
         Assert.True(firstResult.Cost.TotalCostUsd > 0);
-        Assert.Contains("$80", firstResult.Output, StringComparison.Ordinal);
+        Assert.Contains("$337.46", firstResult.Output, StringComparison.Ordinal);
+        Assert.Contains("Plan A", firstResult.Output, StringComparison.Ordinal);
+        Assert.Contains("$50.15", firstResult.Output, StringComparison.Ordinal);
+        Assert.Equal(2, firstResult.Output.Split('\n').Length);
     }
 }

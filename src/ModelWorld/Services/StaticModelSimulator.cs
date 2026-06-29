@@ -45,7 +45,7 @@ public sealed class StaticModelSimulator : IModelRunner
 
     private static int EstimatePromptTokens(PromptScenario prompt) => prompt.Id switch
     {
-        "math-check" => 34,
+        "math-check" => 126,
         "reasoning-schedule" => 55,
         "coding-review" => 31,
         "summarization" => 165,
@@ -57,7 +57,7 @@ public sealed class StaticModelSimulator : IModelRunner
     {
         var baseTokens = prompt.Id switch
         {
-            "math-check" => 47,
+            "math-check" => 28,
             "reasoning-schedule" => 68,
             "coding-review" => 54,
             "summarization" => 50,
@@ -80,6 +80,7 @@ public sealed class StaticModelSimulator : IModelRunner
     {
         var promptAdjustment = prompt.Id switch
         {
+            "math-check" => 420,
             "reasoning-schedule" => 340,
             "coding-review" => 180,
             "structured-output" => -120,
@@ -103,10 +104,8 @@ public sealed class StaticModelSimulator : IModelRunner
     {
         "math-check" => model.Id switch
         {
-            "gpt-54-mini" => "The sale price is 80% of the original price. Original = 64 / 0.8 = 80, so the jacket was $80.",
-            "o4-mini" => "Let x be the original price. A 20% discount means 0.8x = 64, so x = 64 / 0.8 = 80. The original price was $80.",
-            "deepseek-v4-pro" => "Since $64 represents 80% of the original price, divide 64 by 0.8. The original price was $80.",
-            _ => "A 20% discount means the $64 sale price is 80% of the original. Divide by 0.80: $64 / 0.80 = $80. The original price was $80."
+            "llama-33-70b-instruct" => "Plan A total: $337.46\nCheaper plan: Plan A by $50.15",
+            _ => "Plan A total: **$337.46**\nCheaper plan: **Plan A** by **$50.15**"
         },
         "reasoning-schedule" => model.Id switch
         {
