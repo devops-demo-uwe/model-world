@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ModelWorld/ModelWorld.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ModelWorld.Tests/ModelWorld.Tests.csproj" />
+  </Folder>
+</Solution>
