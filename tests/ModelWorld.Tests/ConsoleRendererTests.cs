@@ -49,6 +49,25 @@ public sealed class ConsoleRendererTests
         Assert.Contains("0.0.00", markup, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void BuildModelPromptStatusMarkup_ColorsModelAndPromptSeparately()
+    {
+        var markup = ConsoleRenderer.BuildModelPromptStatusMarkup("GPT-5", "Reasoning Task");
+
+        Assert.Contains("[bold #f472b6]GPT-5[/]", markup, StringComparison.Ordinal);
+        Assert.Contains("[bold #fde047]Reasoning Task[/]", markup, StringComparison.Ordinal);
+        Assert.Contains("[#38bdf8] on [/]", markup, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildModelPromptStatusMarkup_EscapesDynamicText()
+    {
+        var markup = ConsoleRenderer.BuildModelPromptStatusMarkup("[red]model[/]", "[blue]task[/]");
+
+        Assert.Contains("[[red]]model[[/]]", markup, StringComparison.Ordinal);
+        Assert.Contains("[[blue]]task[[/]]", markup, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("Explain semver in one sentence.", true)]
     [InlineData("", false)]

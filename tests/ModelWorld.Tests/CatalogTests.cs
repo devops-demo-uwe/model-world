@@ -40,12 +40,12 @@ public sealed class CatalogTests
     }
 
     [Fact]
-    public void PromptCatalog_ContainsFiveUniquePromptsAcrossExpectedDomains()
+    public void PromptCatalog_ContainsSixUniquePromptsAcrossExpectedDomains()
     {
         var prompts = PromptCatalog.All;
 
-        Assert.Equal(5, prompts.Count);
-        Assert.Equal(5, prompts.Select(prompt => prompt.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(6, prompts.Count);
+        Assert.Equal(6, prompts.Select(prompt => prompt.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
 
         var domains = prompts.Select(prompt => prompt.Domain).ToHashSet(StringComparer.OrdinalIgnoreCase);
         Assert.Contains("Mathematics", domains);
@@ -53,10 +53,17 @@ public sealed class CatalogTests
         Assert.Contains("Coding", domains);
         Assert.Contains("Summarization", domains);
         Assert.Contains("Structured Output", domains);
+        Assert.Contains("General Knowledge", domains);
 
         var reasoningPrompt = PromptCatalog.GetById("reasoning-schedule");
         Assert.Equal("Bat and Ball Trap", reasoningPrompt.Title);
         Assert.Contains("bat and ball", reasoningPrompt.PromptText, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("5 cents", reasoningPrompt.ExpectedBehavior, StringComparison.OrdinalIgnoreCase);
+
+        var generalKnowledgePrompt = PromptCatalog.GetById("general-knowledge-escalation");
+        Assert.Equal("Easy to Obscure Recall", generalKnowledgePrompt.Title);
+        Assert.Contains("Red Planet", generalKnowledgePrompt.PromptText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Henri Moissan", generalKnowledgePrompt.ExpectedBehavior, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("epi tou kanikleiou", generalKnowledgePrompt.ExpectedBehavior, StringComparison.OrdinalIgnoreCase);
     }
 }

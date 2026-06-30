@@ -87,26 +87,30 @@ async Task RunComparisonAsync(
 	renderer.RenderPromptTable(selectedPrompts);
 
 	IReadOnlyList<ModelWorld.Models.SimulationResult> results = [];
-	await renderer.ShowProgressAsync(async updateStatus =>
+	if (!isLiveMode)
 	{
-		if (!isLiveMode)
+		await renderer.ShowProgressAsync(async () =>
 		{
 			results = await runner.RunAsync(selectedModels, selectedPrompts);
-			return;
-		}
-
-		List<ModelWorld.Models.SimulationResult> liveResults = [];
-		foreach (var prompt in selectedPrompts)
+		}, "Running static simulation...");
+	}
+	else
+	{
+		await renderer.ShowProgressMarkupAsync(async updateStatus =>
 		{
-			foreach (var model in selectedModels)
+			List<ModelWorld.Models.SimulationResult> liveResults = [];
+			foreach (var prompt in selectedPrompts)
 			{
-				updateStatus($"Running {model.DisplayName} on {prompt.Title}...");
-				liveResults.AddRange(await runner.RunAsync([model], [prompt]));
+				foreach (var model in selectedModels)
+				{
+					updateStatus(ModelWorld.Console.ConsoleRenderer.BuildModelPromptStatusMarkup(model.DisplayName, prompt.Title));
+					liveResults.AddRange(await runner.RunAsync([model], [prompt]));
+				}
 			}
-		}
 
-		results = liveResults;
-	}, isLiveMode ? "Running live Azure AI Foundry requests..." : "Running static simulation...");
+			results = liveResults;
+		}, ModelWorld.Console.ConsoleRenderer.BuildProgressStatusMarkup("Running live Azure AI Foundry requests..."));
+	}
 
 	renderer.RenderResults(results);
 }

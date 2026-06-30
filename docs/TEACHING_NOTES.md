@@ -2,6 +2,136 @@
 
 Use this file to capture model comparison observations that are useful for explaining AI model behavior to learners. Add a new dated note whenever a run reveals a pattern worth discussing.
 
+## 2026-06-30: Byzantine Inkstand Office General Knowledge Benchmark
+
+### Question
+
+```text
+In Byzantine administrative history, what Greek title was used for the head of the imperial inkstand office?
+```
+
+### Correct Answer
+
+The correct title is **ἐπὶ τοῦ κανικλείου** / **epi tou kanikleiou**.
+
+Also acceptable: **κανίκλειος** / **kanikleios**.
+
+### Meaning
+
+The **epi tou kanikleiou** / **kanikleios** was the official responsible for the imperial inkstand. This was not just a minor stationery role. The officeholder guarded or controlled the special imperial inkstand and the scarlet or purple ink used in authenticating imperial documents.
+
+In practical terms, this official was involved in the machinery of imperial authorization: documents, signatures, formulae, seals, and access to the emperor's written authority.
+
+### Benchmark Scoring Guidance
+
+Mark these answers fully correct:
+
+```text
+epi tou kanikleiou
+```
+
+```text
+ἐπὶ τοῦ κανικλείου
+```
+
+```text
+kanikleios
+```
+
+```text
+κανίκλειος
+```
+
+```text
+The title was epi tou kanikleiou, also known as kanikleios.
+```
+
+```text
+The official was the kanikleios, the keeper of the imperial inkstand.
+```
+
+```text
+ἐπὶ τοῦ κανικλείου, literally the official "over the kanikleion" or imperial inkstand.
+```
+
+These answers are partially correct. They show relevant knowledge, but should not receive full credit unless the benchmark allows fuzzy scoring:
+
+```text
+Keeper of the imperial inkstand
+```
+
+```text
+The imperial inkstand keeper
+```
+
+```text
+Head of the kanikleion
+```
+
+```text
+Kanikleion
+```
+
+```text
+The official in charge of the kanikleion
+```
+
+Mark these answers incorrect because they name broader or different offices:
+
+```text
+asekretis
+```
+
+```text
+chartoularios
+```
+
+```text
+chartoularios tou kanikleiou
+```
+
+```text
+logothetes
+```
+
+```text
+protonotarios
+```
+
+```text
+sakellarios
+```
+
+```text
+megas logothetes
+```
+
+```text
+praipositos
+```
+
+### Recommended Expected Answer Field
+
+For strict matching:
+
+```json
+{
+    "answer": "epi tou kanikleiou",
+    "alternate_answers": [
+        "ἐπὶ τοῦ κανικλείου",
+        "kanikleios",
+        "κανίκλειος",
+        "epi tou kanikleiou / kanikleios"
+    ]
+}
+```
+
+For benchmark explanation:
+
+```text
+The expected answer is epi tou kanikleiou, also called kanikleios. This was the Byzantine court official responsible for the imperial inkstand and the special ink used in authenticating imperial documents. Answers such as asekretis or chartoularios are too general and should not be accepted as the specific title.
+```
+
 ## 2026-06-29: Verify the Rental Truck Math Locally
 
 ### Observation

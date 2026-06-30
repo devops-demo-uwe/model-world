@@ -574,12 +574,31 @@ public sealed class ConsoleRenderer
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.BouncingBar)
             .SpinnerStyle(Style.Parse($"bold {AccentAlt}"))
-            .StartAsync($"[{Accent}]{NerdRun} {Markup.Escape(statusMessage)}[/]", async context =>
+            .StartAsync(BuildProgressStatusMarkup(statusMessage), async context =>
             {
                 await Task.Delay(250);
-                await action(message => context.Status($"[{Accent}]{NerdRun} {Markup.Escape(message)}[/]"));
+                await action(message => context.Status(BuildProgressStatusMarkup(message)));
             });
     }
+
+    public async Task ShowProgressMarkupAsync(Func<Action<string>, Task> action, string statusMarkup)
+    {
+        await AnsiConsole.Status()
+            .Spinner(Spinner.Known.BouncingBar)
+            .SpinnerStyle(Style.Parse($"bold {AccentAlt}"))
+            .StartAsync(statusMarkup, async context =>
+            {
+                await Task.Delay(250);
+                await action(message => context.Status(message));
+            });
+    }
+
+    internal static string BuildProgressStatusMarkup(string statusMessage) =>
+        $"[{Accent}]{NerdRun} {Markup.Escape(statusMessage)}[/]";
+
+    internal static string BuildModelPromptStatusMarkup(string modelDisplayName, string promptTitle) =>
+        $"[{Accent}]{NerdRun} Running [/][bold {AccentAlt}]{Markup.Escape(modelDisplayName)}[/]" +
+        $"[{Accent}] on [/][bold {Shine}]{Markup.Escape(promptTitle)}[/][{Accent}]...[/]";
 
     private static void RenderPromptComparisonTable(IReadOnlyList<SimulationResult> results)
     {

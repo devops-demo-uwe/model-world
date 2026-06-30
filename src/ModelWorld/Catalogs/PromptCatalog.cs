@@ -60,7 +60,21 @@ public static class PromptCatalog
             PromptText: "Return JSON with fields priority, owner, and nextAction for this note: Erin should validate the demo run before Friday; it blocks the team walkthrough.",
             Intent: "Test instruction following and structured output discipline.",
             ExpectedBehavior: "Return only valid JSON with high priority, owner Erin, and a validation next action.",
-            Reveals: "Whether the model obeys strict format requirements without extra prose.")
+            Reveals: "Whether the model obeys strict format requirements without extra prose."),
+        new(
+            Id: "general-knowledge-escalation",
+            Domain: "General Knowledge",
+            Title: "Easy to Obscure Recall",
+            PromptText: """
+            Answer these three questions using only your general knowledge. Do not browse, run tools, or ask for additional context.
+
+            1. Easy: What planet is known as the Red Planet?
+            2. Hard: Which chemist first isolated fluorine in 1886?
+            3. Extremely obscure: In Byzantine administrative history, what Greek title was used for the head of the imperial inkstand office?
+            """,
+            Intent: "Compare factual recall across a range from common knowledge to highly obscure trivia that depends on the model's learned world knowledge.",
+            ExpectedBehavior: "Answer Mars, Henri Moissan, and epi tou kanikleiou or a close transliteration of the Byzantine title.",
+            Reveals: "Whether the model can distinguish confidence across easy, specialized, and extremely obscure factual questions without external lookup.")
     ];
 
     public static PromptScenario GetById(string id) =>
