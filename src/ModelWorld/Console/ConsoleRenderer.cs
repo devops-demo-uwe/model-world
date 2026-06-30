@@ -7,6 +7,13 @@ using Spectre.Console.Rendering;
 
 namespace ModelWorld.Console;
 
+public enum MainMenuAction
+{
+    RunComparison,
+    ViewEnterpriseCostExample,
+    Exit
+}
+
 public sealed class ConsoleRenderer
 {
     private const int LayoutWidth = 120;
@@ -197,6 +204,8 @@ public sealed class ConsoleRenderer
         IReadOnlyList<ModelProfile> models,
         IReadOnlyDictionary<string, ModelPricing>? pricingByModelId = null)
     {
+        AnsiConsole.WriteLine();
+
         var pricingSummary = BuildPricingSummary(models, pricingByModelId);
         var table = new Table()
             .Title($"[bold {Accent}]{NerdModel} Model Catalog[/]\n[{Muted}]{Markup.Escape(pricingSummary.Header)}[/]")
@@ -280,6 +289,8 @@ public sealed class ConsoleRenderer
 
     public void RenderPromptTable(IReadOnlyList<PromptScenario> prompts)
     {
+        AnsiConsole.WriteLine();
+
         var table = new Table()
             .Title($"[bold {AccentAlt}]{NerdPrompt} Prompt Gallery[/]")
             .Border(TableBorder.HeavyHead)
@@ -386,12 +397,27 @@ public sealed class ConsoleRenderer
             : [prompts.First(prompt => selected.EndsWith(prompt.Title, StringComparison.Ordinal))];
     }
 
-    public bool ShouldRunComparison() =>
-        AnsiConsole.Prompt(
+    public MainMenuAction SelectMainMenuAction()
+    {
+        var runComparison = $"{NerdRun} Run a model comparison";
+        var viewEnterpriseCostExample = $"{NerdCost} View enterprise cost example";
+        var exit = $"{NerdExit} Exit Model World";
+
+        var selected = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("What would you like to do?")
                 .HighlightStyle(Style.Parse($"bold {Accent}"))
-                .AddChoices($"{NerdRun} Run a model comparison", $"{NerdExit} Exit Model World")) == $"{NerdRun} Run a model comparison";
+                .AddChoices(runComparison, viewEnterpriseCostExample, exit));
+
+        if (selected == runComparison)
+        {
+            return MainMenuAction.RunComparison;
+        }
+
+        return selected == viewEnterpriseCostExample
+            ? MainMenuAction.ViewEnterpriseCostExample
+            : MainMenuAction.Exit;
+    }
 
     public bool ShouldRunAnotherComparison() =>
         AnsiConsole.Prompt(
@@ -399,6 +425,13 @@ public sealed class ConsoleRenderer
                 .Title("Keep exploring?")
                 .HighlightStyle(Style.Parse($"bold {Accent}"))
                 .AddChoices($"{NerdRun} Run another comparison", $"{NerdExit} Exit Model World")) == $"{NerdRun} Run another comparison";
+
+    public void WaitForMainMenuReturn() =>
+        AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Enterprise cost example")
+                .HighlightStyle(Style.Parse($"bold {Accent}"))
+                .AddChoices($"{NerdRun} Return to main menu"));
 
     public void RenderGoodbye()
     {

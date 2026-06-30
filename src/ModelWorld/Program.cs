@@ -25,8 +25,6 @@ if (isDemo)
 {
 	renderer.RenderIntro(isLiveMode);
 	renderer.RenderModelTable(models, pricingByModelId);
-	renderer.RenderEnterpriseChatCostExample(models, EnterpriseChatUsageProfile.MediumCorporate, pricingByModelId);
-	renderer.RenderPromptTable(prompts);
 
 	var demoModels = isLiveMode
 		? ModelCatalog.GetDefaultLiveComparisonModels()
@@ -39,12 +37,18 @@ while (true)
 {
 	renderer.RenderIntro(isLiveMode);
 	renderer.RenderModelTable(models, pricingByModelId);
-	renderer.RenderEnterpriseChatCostExample(models, EnterpriseChatUsageProfile.MediumCorporate, pricingByModelId);
-	renderer.RenderPromptTable(prompts);
 
-	if (!renderer.ShouldRunComparison())
+	var selectedAction = renderer.SelectMainMenuAction();
+	if (selectedAction == MainMenuAction.Exit)
 	{
 		break;
+	}
+
+	if (selectedAction == MainMenuAction.ViewEnterpriseCostExample)
+	{
+		renderer.RenderEnterpriseChatCostExample(models, EnterpriseChatUsageProfile.MediumCorporate, pricingByModelId);
+		renderer.WaitForMainMenuReturn();
+		continue;
 	}
 
 	var selectedModels = renderer.SelectModels(models);
@@ -64,6 +68,8 @@ async Task RunComparisonAsync(
 	IReadOnlyList<ModelWorld.Models.ModelProfile> selectedModels,
 	IReadOnlyList<ModelWorld.Models.PromptScenario> selectedPrompts)
 {
+	renderer.RenderPromptTable(selectedPrompts);
+
 	IReadOnlyList<ModelWorld.Models.SimulationResult> results = [];
 	await renderer.ShowProgressAsync(async updateStatus =>
 	{
