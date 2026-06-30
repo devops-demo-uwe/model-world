@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using ModelWorld;
 using ModelWorld.Models;
 using ModelWorld.Services;
 using Spectre.Console;
@@ -291,10 +292,7 @@ public sealed class ConsoleRenderer
 
     public void RenderHelpSection(bool isLiveMode = false)
     {
-        var idea = new Markup(
-            $"[bold {Accent}]Model World is a learning lab, not a leaderboard.[/]\n" +
-            $"[{Muted}]It runs the same small prompt against a curated model set so you can compare response quality, latency, token usage, finish reason, and estimated cost side by side.[/]\n" +
-            $"[{Muted}]Use it to build intuition about model tradeoffs before choosing a model for a real scenario.[/]");
+        var idea = new Markup(BuildHelpIntroMarkup());
 
         var workflow = new Table()
             .Border(TableBorder.None)
@@ -342,6 +340,12 @@ public sealed class ConsoleRenderer
             .Expand());
         AnsiConsole.WriteLine();
     }
+
+    internal static string BuildHelpIntroMarkup() =>
+        $"[bold {Accent}]Model World is a learning lab, not a leaderboard.[/]\n" +
+        $"[bold white]Version:[/] [{Muted}]{Markup.Escape(AppVersion.SemVer)}[/]\n" +
+        $"[{Muted}]It runs the same small prompt against a curated model set so you can compare response quality, latency, token usage, finish reason, and estimated cost side by side.[/]\n" +
+        $"[{Muted}]Use it to build intuition about model tradeoffs before choosing a model for a real scenario.[/]";
 
     public void RenderPromptTable(IReadOnlyList<PromptScenario> prompts)
     {

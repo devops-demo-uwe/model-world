@@ -40,6 +40,15 @@ public sealed class ConsoleRendererTests
         Assert.Equal("[bold #38bdf8]abcde[/]", markup);
     }
 
+    [Fact]
+    public void BuildHelpIntroMarkup_IncludesConfiguredAppVersion()
+    {
+        var markup = ConsoleRenderer.BuildHelpIntroMarkup();
+
+        Assert.Contains("Version:", markup, StringComparison.Ordinal);
+        Assert.Contains("0.0.00", markup, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, false)]
