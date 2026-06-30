@@ -11,6 +11,7 @@ The app supports two modes:
 
 - 5 configured model profiles for the deployed classroom comparison set: `gpt-5.4`, `gpt-5.4-mini`, `o4-mini`, `DeepSeek-V4-Pro`, and `Llama-3.3-70B-Instruct`.
 - 6 prompt scenarios covering mathematics, reasoning, coding, summarization, structured output, and general knowledge escalation.
+- A Foundry-ready JSONL evaluation dataset at [docs/data/model-world-foundry-evaluation.jsonl](docs/data/model-world-foundry-evaluation.jsonl) for uploading through the Azure AI Foundry evaluation page.
 - Scripted demo runs that execute one prompt against the default three-model set: `gpt-5.4-mini`, `o4-mini`, and `Llama-3.3-70B-Instruct`.
 - Interactive comparison runs that require exactly 3 selected models so generated outputs fit in column-based result tables.
 - A custom prompt option for ad hoc comparisons, capped at 2,000 characters.

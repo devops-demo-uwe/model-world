@@ -105,6 +105,24 @@ $env:ModelWorld__Azure__DeploymentOverrides__gpt-54-mini = "<your-gpt-5.4-mini-d
 
 `DefaultAzureCredential` can use Azure CLI sign-in, managed identity, Visual Studio credentials, or environment-based workload identity. Prefer Azure CLI for instructor laptops and managed identity for hosted lab infrastructure.
 
+## Prepare a Foundry Evaluation Dataset
+
+The repository includes a ready-to-upload JSONL dataset for the official Azure AI Foundry evaluation flow:
+
+```text
+docs/data/model-world-foundry-evaluation.jsonl
+```
+
+Use it from the Foundry **Evaluations** page when creating a **Target: Model** evaluation:
+
+1. In the **Data** step, choose **Existing dataset**, then **Upload new dataset**.
+2. Upload `docs/data/model-world-foundry-evaluation.jsonl`.
+3. In **Field mapping**, map the model input or query field to `query`.
+4. Map expected answer or ground truth fields to `ground_truth` when using criteria that need a reference answer.
+5. Ignore the token metadata fields for scoring. They mirror the local static simulator estimates for classroom budgeting; live Foundry runs report their own token usage.
+
+The dataset intentionally does not include a `response` column because the Foundry target model generates the response during the evaluation run. Each row also includes `scenario_id`, `domain`, `title`, `intent`, and `rubric` fields to make results easier to filter and discuss after the run.
+
 ## Run a Smoke Test
 
 Static demo mode is always free and sends no Azure requests:
