@@ -50,6 +50,34 @@ public sealed class ConsoleRendererTests
     }
 
     [Theory]
+    [InlineData("Explain semver in one sentence.", true)]
+    [InlineData("", false)]
+    [InlineData("   ", false)]
+    public void IsValidCustomPromptText_RequiresContent(string promptText, bool expected)
+    {
+        Assert.Equal(expected, ConsoleRenderer.IsValidCustomPromptText(promptText));
+    }
+
+    [Fact]
+    public void IsValidCustomPromptText_RejectsPromptsOverLimit()
+    {
+        var promptText = new string('a', ConsoleRenderer.MaximumCustomPromptCharacters + 1);
+
+        Assert.False(ConsoleRenderer.IsValidCustomPromptText(promptText));
+    }
+
+    [Fact]
+    public void BuildCustomPromptScenario_TrimsAndLabelsPrompt()
+    {
+        var scenario = ConsoleRenderer.BuildCustomPromptScenario("  Compare these options.  ");
+
+        Assert.Equal("custom-prompt", scenario.Id);
+        Assert.Equal("Custom", scenario.Domain);
+        Assert.Equal("User Prompt", scenario.Title);
+        Assert.Equal("Compare these options.", scenario.PromptText);
+    }
+
+    [Theory]
     [InlineData(0, false)]
     [InlineData(1, false)]
     [InlineData(2, false)]

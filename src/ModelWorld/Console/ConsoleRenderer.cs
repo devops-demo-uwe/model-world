@@ -21,6 +21,7 @@ public sealed class ConsoleRenderer
     private const int LayoutWidth = 120;
     private const int BannerInnerWidth = LayoutWidth - 4;
     private const int MaximumComparedModels = 3;
+    internal const int MaximumCustomPromptCharacters = 2_000;
     private const string Accent = "#38bdf8";
     private const string AccentAlt = "#f472b6";
     private const string Success = "#34d399";
@@ -421,15 +422,44 @@ public sealed class ConsoleRenderer
 
     public IReadOnlyList<PromptScenario> SelectPrompts(IReadOnlyList<PromptScenario> prompts)
     {
-        var choices = prompts.Select(prompt => $"{prompt.Domain}: {prompt.Title}").ToArray();
+        var customPromptChoice = $"{NerdPrompt} Custom: enter your own prompt";
+        var choices = prompts
+            .Select(prompt => $"{prompt.Domain}: {prompt.Title}")
+            .Append(customPromptChoice)
+            .ToArray();
         var selected = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Choose a prompt")
                 .HighlightStyle(Style.Parse($"bold {AccentAlt}"))
                 .AddChoices(choices));
 
+        if (selected == customPromptChoice)
+        {
+            var promptText = AnsiConsole.Prompt(
+                new TextPrompt<string>($"Enter a custom prompt [[max {MaximumCustomPromptCharacters.ToString(CultureInfo.InvariantCulture)} characters]]")
+                    .PromptStyle(Style.Parse($"bold {AccentAlt}"))
+                    .Validate(input => IsValidCustomPromptText(input)
+                        ? ValidationResult.Success()
+                        : ValidationResult.Error($"Prompt must be 1-{MaximumCustomPromptCharacters.ToString(CultureInfo.InvariantCulture)} characters.")));
+
+            return [BuildCustomPromptScenario(promptText)];
+        }
+
         return [prompts.First(prompt => selected.EndsWith(prompt.Title, StringComparison.Ordinal))];
     }
+
+    internal static bool IsValidCustomPromptText(string promptText) =>
+        !string.IsNullOrWhiteSpace(promptText) && promptText.Length <= MaximumCustomPromptCharacters;
+
+    internal static PromptScenario BuildCustomPromptScenario(string promptText) =>
+        new(
+            Id: "custom-prompt",
+            Domain: "Custom",
+            Title: "User Prompt",
+            PromptText: promptText.Trim(),
+            Intent: "User-provided prompt for an ad hoc comparison.",
+            ExpectedBehavior: "Evaluate whether each model follows the user's custom instruction.",
+            Reveals: "How selected models respond to the user's own scenario.");
 
     public MainMenuAction SelectMainMenuAction()
     {
