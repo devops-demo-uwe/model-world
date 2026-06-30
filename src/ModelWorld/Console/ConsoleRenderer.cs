@@ -760,8 +760,9 @@ public sealed class ConsoleRenderer
                 model.OutputCostPerMillionTokensUsd,
                 IsAvailable: true,
                 Source: "Local catalog pricing",
-                Region: "static",
-                EffectiveStartDate: null);
+                Region: model.PricingRegion,
+                EffectiveStartDate: null,
+                Note: null);
         }
 
         if (pricingByModelId.TryGetValue(model.Id, out var pricing) && pricing.IsAvailable)
@@ -772,7 +773,8 @@ public sealed class ConsoleRenderer
                 IsAvailable: true,
                 pricing.Source,
                 pricing.Region,
-                pricing.EffectiveStartDate);
+                pricing.EffectiveStartDate,
+                pricing.Note);
         }
 
         return new DisplayPricing(
@@ -785,7 +787,10 @@ public sealed class ConsoleRenderer
             Region: pricingByModelId.TryGetValue(model.Id, out var regionPricing)
                 ? regionPricing.Region
                 : "unknown",
-            EffectiveStartDate: null);
+            EffectiveStartDate: null,
+            Note: pricingByModelId.TryGetValue(model.Id, out var notePricing)
+                ? notePricing.Note
+                : null);
     }
 
     private static string FormatPricingCell(DisplayPricing pricing)
@@ -795,18 +800,44 @@ public sealed class ConsoleRenderer
             return $"[{Muted}]pricing unavailable[/]";
         }
 
-        return $"[{Accent}]${FormatCurrencyValue(pricing.InputCostPerMillionTokensUsd)} in[/]\n" +
+        var formattedPricing = $"[{Accent}]${FormatCurrencyValue(pricing.InputCostPerMillionTokensUsd)} in[/]\n" +
             $"[{AccentAlt}]${FormatCurrencyValue(pricing.OutputCostPerMillionTokensUsd)} out[/]";
+        var marker = GetPricingMarker(pricing);
+
+        return string.IsNullOrWhiteSpace(marker)
+            ? formattedPricing
+            : $"{formattedPricing} [{Warning}]{marker}[/]";
     }
 
-    private static string BuildModelCatalogCaption(PricingSummary pricingSummary)
+    private static string? GetPricingMarker(DisplayPricing pricing) =>
+        GetPricingMarker(pricing.Source, pricing.Note);
+
+    internal static string? GetPricingMarker(string source, string? note)
+    {
+        if (string.Equals(source, AzureRetailPricesPricingProvider.CatalogFallbackSourceName, StringComparison.OrdinalIgnoreCase))
+        {
+            return "*";
+        }
+
+        if (note?.Contains("API/catalog price mismatch", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return "!";
+        }
+
+        return null;
+    }
+
+    internal static string BuildModelCatalogCaption(string pricingCaption)
     {
         const string scaleExplanation = "Scale: ctx = maximum context window in tokens; ms = catalog typical latency estimate.";
 
-        return string.IsNullOrWhiteSpace(pricingSummary.Caption)
+        return string.IsNullOrWhiteSpace(pricingCaption)
             ? scaleExplanation
-            : $"{pricingSummary.Caption} {scaleExplanation}";
+            : $"{pricingCaption}\n{scaleExplanation}";
     }
+
+    private static string BuildModelCatalogCaption(PricingSummary pricingSummary) =>
+        BuildModelCatalogCaption(pricingSummary.Caption);
 
     private static PricingSummary BuildPricingSummary(
         IReadOnlyList<ModelProfile> models,
@@ -815,14 +846,12 @@ public sealed class ConsoleRenderer
         var displayPricing = models
             .Select(model => GetDisplayPricing(model, pricingByModelId))
             .ToArray();
-        var source = displayPricing
-            .Select(pricing => pricing.Source)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .SingleOrDefault() ?? "Mixed pricing sources";
-        var region = displayPricing
-            .Select(pricing => pricing.Region)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .SingleOrDefault() ?? "mixed regions";
+        var source = SummarizeDistinctValues(
+            displayPricing.Select(pricing => pricing.Source),
+            "Mixed pricing sources");
+        var region = SummarizeDistinctValues(
+            displayPricing.Select(pricing => pricing.Region),
+            "mixed regions");
         var availablePricing = displayPricing
             .Where(pricing => pricing.IsAvailable)
             .ToArray();
@@ -841,6 +870,8 @@ public sealed class ConsoleRenderer
             .Order()
             .ToArray();
         var unavailableCount = displayPricing.Count(pricing => !pricing.IsAvailable);
+        var catalogFallbackCount = displayPricing.Count(pricing => pricing.IsCatalogFallback);
+        var priceMismatchCount = displayPricing.Count(pricing => pricing.HasApiCatalogPriceMismatch);
         var captionParts = new List<string>();
 
         if (effectiveDates.Length == 1)
@@ -857,7 +888,30 @@ public sealed class ConsoleRenderer
             captionParts.Add($"Pricing unavailable for {unavailableCount} model(s).");
         }
 
+        if (catalogFallbackCount > 0)
+        {
+            captionParts.Add($"* Catalog fallback used for {catalogFallbackCount} model(s) because API pricing was unavailable.");
+        }
+
+        if (priceMismatchCount > 0)
+        {
+            captionParts.Add($"! API/catalog price mismatch for {priceMismatchCount} model(s); API prices are displayed.");
+        }
+
         return new PricingSummary(header, string.Join(' ', captionParts));
+    }
+
+    internal static string SummarizeDistinctValues(IEnumerable<string> values, string mixedLabel)
+    {
+        var distinctValues = values
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToArray();
+
+        return distinctValues.Length == 1
+            ? distinctValues[0]
+            : mixedLabel;
     }
 
     internal static string FormatRunCostComparison(CostEstimate estimate, decimal? lowestCostUsd)
@@ -875,7 +929,7 @@ public sealed class ConsoleRenderer
 
         if (estimate.TotalCostUsd == lowestCostUsd.Value)
         {
-            return $"[{Accent}]{formattedCost}[/]\n[{Success}](lowest)[/]";
+            return $"[{Accent}]{formattedCost}[/]\n[{Warning}](lowest)[/]";
         }
 
         if (lowestCostUsd.Value <= 0)
@@ -936,7 +990,15 @@ public sealed class ConsoleRenderer
         bool IsAvailable,
         string Source,
         string Region,
-        DateTimeOffset? EffectiveStartDate);
+        DateTimeOffset? EffectiveStartDate,
+        string? Note)
+    {
+        public bool IsCatalogFallback =>
+            string.Equals(Source, AzureRetailPricesPricingProvider.CatalogFallbackSourceName, StringComparison.OrdinalIgnoreCase);
+
+        public bool HasApiCatalogPriceMismatch =>
+            string.Equals(GetPricingMarker(Source, Note), "!", StringComparison.Ordinal);
+    }
 
     private sealed record PricingSummary(
         string Header,

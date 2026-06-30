@@ -35,10 +35,9 @@ Live mode is the normal operating mode and may incur Azure usage charges.
 ```powershell
 az login
 dotnet user-secrets set "ModelWorld:Azure:Endpoint" "https://<resource-name>.openai.azure.com/openai/v1/" --project src\ModelWorld\ModelWorld.csproj
-dotnet user-secrets set "ModelWorld:Azure:Region" "eastus" --project src\ModelWorld\ModelWorld.csproj
 ```
 
-The endpoint can be either the base resource URL or the full `/openai/v1/` route. The app normalizes it before creating the chat client.
+The endpoint can be either the base resource URL or the full `/openai/v1/` route. The app normalizes it before creating the chat client. Pricing region is stored per model in the catalog; the current classroom catalog uses `swedencentral`. At startup, live mode queries Azure Retail Prices API, flags catalog fallback rows when API pricing is unavailable, and flags rows where API pricing differs from the local catalog fallback.
 
 The default catalog expects these deployment names exactly:
 

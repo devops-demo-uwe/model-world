@@ -39,6 +39,6 @@ public sealed class CostCalculatorTests
         Assert.Equal(138_600, usageProfile.MonthlyChatCount);
         Assert.Equal(166_320_000m, usageProfile.MonthlyInputTokens);
         Assert.Equal(69_300_000m, usageProfile.MonthlyOutputTokens);
-        Assert.Equal(266.112m, estimate.TotalCostUsd);
+        Assert.Equal(436.590m, estimate.TotalCostUsd);
     }
 }

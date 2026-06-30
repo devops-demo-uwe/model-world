@@ -97,8 +97,8 @@ var models = new List<DemoModel>
         ContextWindowTokens: 128_000,
         Strengths: "Fast everyday answers and low cost",
         Limitations: "Less reliable on hard multi-step reasoning",
-        InputPricePerMillionTokens: 0.60m,
-        OutputPricePerMillionTokens: 2.40m),
+        InputPricePerMillionTokens: 0.75m,
+        OutputPricePerMillionTokens: 4.50m),
 
     new(
         Id: "reasoning-small",
@@ -202,8 +202,8 @@ public static RequestCost EstimateRequestCost(
 var cost = EstimateRequestCost(
     inputTokens: 1_200,
     outputTokens: 500,
-    inputUsdPerMillionTokens: 0.60m,
-    outputUsdPerMillionTokens: 2.40m);
+    inputUsdPerMillionTokens: 0.75m,
+    outputUsdPerMillionTokens: 4.50m);
 
 Console.WriteLine($"Estimated request cost: {cost.TotalUsd:C6}");
 ```

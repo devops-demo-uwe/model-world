@@ -6,6 +6,7 @@ public sealed record ModelProfile(
     string Provider,
     string Family,
     string DeploymentName,
+    string PricingRegion,
     int ContextWindowTokens,
     string Strengths,
     string Limitations,

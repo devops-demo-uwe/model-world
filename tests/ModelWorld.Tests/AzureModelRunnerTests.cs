@@ -40,15 +40,13 @@ public sealed class AzureModelRunnerTests
     }
 
     [Fact]
-    public void AzureFoundryOptions_ValidatesPricingConfiguration()
+    public void AzureFoundryOptions_ValidatesPricingEndpointConfiguration()
     {
         var options = new AzureFoundryOptions
         {
-            Region = "EastUS",
             PricingEndpoint = "https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview"
         };
 
-        Assert.Equal("eastus", options.GetPricingRegion());
         Assert.Equal("https://prices.azure.com/api/retail/prices?api-version=2023-01-01-preview", options.GetPricingEndpoint().ToString());
     }
 

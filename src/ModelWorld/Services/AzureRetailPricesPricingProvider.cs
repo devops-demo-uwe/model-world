@@ -8,6 +8,7 @@ namespace ModelWorld.Services;
 public sealed class AzureRetailPricesPricingProvider : IPricingProvider
 {
     public const string SourceName = "Azure Retail Prices API";
+    public const string CatalogFallbackSourceName = "Local catalog fallback";
 
     private readonly HttpClient httpClient;
     private readonly Uri pricingEndpoint;
@@ -20,16 +21,13 @@ public sealed class AzureRetailPricesPricingProvider : IPricingProvider
 
     public async Task<IReadOnlyDictionary<string, ModelPricing>> GetPricingAsync(
         IReadOnlyList<ModelProfile> models,
-        string region,
         CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(region);
-
-        var normalizedRegion = region.Trim().ToLowerInvariant();
         Dictionary<string, ModelPricing> pricingByModelId = new(StringComparer.OrdinalIgnoreCase);
 
         foreach (var model in models)
         {
+            var normalizedRegion = GetNormalizedPricingRegion(model);
             var meters = await FetchMetersAsync(model, normalizedRegion, cancellationToken);
             pricingByModelId[model.Id] = ResolvePricing(model, meters, normalizedRegion);
         }
@@ -80,44 +78,56 @@ public sealed class AzureRetailPricesPricingProvider : IPricingProvider
 
     private static ModelPricing ResolvePricing(ModelProfile model, IReadOnlyList<RetailPriceMeter> meters, string region)
     {
-        var inputMeter = FindBestMeter(model, meters, model.PricingLookupHints.InputMeterNameContains);
-        var outputMeter = FindBestMeter(model, meters, model.PricingLookupHints.OutputMeterNameContains);
+        var inputMeter = FindBestMeter(model, meters, region, model.PricingLookupHints.InputMeterNameContains);
+        var outputMeter = FindBestMeter(model, meters, region, model.PricingLookupHints.OutputMeterNameContains);
 
         if (inputMeter is null || outputMeter is null)
         {
-            return ModelPricing.Unavailable(
+            return ModelPricing.CatalogFallback(
                 model,
-                SourceName,
+                CatalogFallbackSourceName,
                 region,
-                "No confident input/output token meter match was found.");
+                "catalog fallback: API pricing unavailable");
         }
 
         var effectiveStartDate = MaxDate(inputMeter.EffectiveStartDate, outputMeter.EffectiveStartDate);
+        var inputCostPerMillionTokensUsd = GetPerMillionTokenPrice(inputMeter);
+        var outputCostPerMillionTokensUsd = GetPerMillionTokenPrice(outputMeter);
+        var note = CatalogPriceMatches(model, inputCostPerMillionTokensUsd, outputCostPerMillionTokensUsd)
+            ? null
+            : "API/catalog price mismatch";
 
         return ModelPricing.Available(
             model,
-            GetPerMillionTokenPrice(inputMeter),
-            GetPerMillionTokenPrice(outputMeter),
+            inputCostPerMillionTokensUsd,
+            outputCostPerMillionTokensUsd,
             SourceName,
             region,
-            effectiveStartDate);
+            effectiveStartDate,
+            note);
     }
 
     private static RetailPriceMeter? FindBestMeter(
         ModelProfile model,
         IReadOnlyList<RetailPriceMeter> meters,
+        string region,
         IReadOnlyList<string> directionHints) =>
         meters
-            .Select(meter => new { Meter = meter, Score = ScoreMeter(model, meter, directionHints) })
+            .Select(meter => new { Meter = meter, Score = ScoreMeter(model, meter, region, directionHints) })
             .Where(candidate => candidate.Score >= 5)
             .OrderByDescending(candidate => candidate.Score)
             .ThenByDescending(candidate => candidate.Meter.EffectiveStartDate)
             .FirstOrDefault()
             ?.Meter;
 
-    private static int ScoreMeter(ModelProfile model, RetailPriceMeter meter, IReadOnlyList<string> directionHints)
+    private static int ScoreMeter(
+        ModelProfile model,
+        RetailPriceMeter meter,
+        string region,
+        IReadOnlyList<string> directionHints)
     {
         if (!string.Equals(meter.CurrencyCode, "USD", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(meter.ArmRegionName, region, StringComparison.OrdinalIgnoreCase)
             || (!string.IsNullOrWhiteSpace(meter.PriceType) && !string.Equals(meter.PriceType, "Consumption", StringComparison.OrdinalIgnoreCase))
             || meter.UnitPrice <= 0)
         {
@@ -130,15 +140,15 @@ public sealed class AzureRetailPricesPricingProvider : IPricingProvider
         var unitOfMeasure = meter.UnitOfMeasure ?? string.Empty;
         var searchableText = string.Join(' ', productName, skuName, meterName);
 
-        var score = 0;
-        if (searchableText.Contains("batch", StringComparison.OrdinalIgnoreCase)
-            || searchableText.Contains("cached", StringComparison.OrdinalIgnoreCase)
-            || searchableText.Contains("hosting", StringComparison.OrdinalIgnoreCase)
-            || searchableText.Contains("training", StringComparison.OrdinalIgnoreCase))
+        if (!ContainsAny(searchableText, model.PricingLookupHints.DeploymentTypeContains)
+            || !ContainsAny(searchableText, model.PricingLookupHints.SkuNameContains)
+            || !ContainsAll(searchableText, model.PricingLookupHints.RequiredTextContains)
+            || ContainsAny(searchableText, model.PricingLookupHints.ExcludedTextContains))
         {
-            score -= 4;
+            return 0;
         }
 
+        var score = 0;
         if (ContainsAny(productName, model.PricingLookupHints.ProductNameContains))
         {
             score += 2;
@@ -180,8 +190,28 @@ public sealed class AzureRetailPricesPricingProvider : IPricingProvider
         return meter.UnitPrice;
     }
 
+    private static bool CatalogPriceMatches(
+        ModelProfile model,
+        decimal inputCostPerMillionTokensUsd,
+        decimal outputCostPerMillionTokensUsd) =>
+        model.InputCostPerMillionTokensUsd == inputCostPerMillionTokensUsd
+        && model.OutputCostPerMillionTokensUsd == outputCostPerMillionTokensUsd;
+
     private static bool ContainsAny(string text, IReadOnlyList<string> values) =>
         values.Any(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+    private static bool ContainsAll(string text, IReadOnlyList<string> values) =>
+        values.All(value => text.Contains(value, StringComparison.OrdinalIgnoreCase));
+
+    private static string GetNormalizedPricingRegion(ModelProfile model)
+    {
+        if (string.IsNullOrWhiteSpace(model.PricingRegion))
+        {
+            throw new InvalidOperationException($"Model '{model.Id}' must define a pricing region.");
+        }
+
+        return model.PricingRegion.Trim().ToLowerInvariant();
+    }
 
     private static DateTimeOffset? MaxDate(DateTimeOffset? left, DateTimeOffset? right)
     {

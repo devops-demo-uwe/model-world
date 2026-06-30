@@ -1,5 +1,6 @@
 using ModelWorld.Console;
 using ModelWorld.Models;
+using ModelWorld.Services;
 
 namespace ModelWorld.Tests;
 
@@ -70,15 +71,15 @@ public sealed class ConsoleRendererTests
     }
 
     [Theory]
-    [InlineData(0.0010, 0.0010, "(lowest)")]
-    [InlineData(0.00121, 0.0010, "+21%")]
-    public void FormatRunCostComparison_LabelsCostRelativeToLowest(decimal totalCostUsd, decimal lowestCostUsd, string expectedLabel)
+    [InlineData(0.0010, 0.0010, "[#fbbf24](lowest)[/]")]
+    [InlineData(0.00121, 0.0010, "[#fbbf24]+21%[/]")]
+    public void FormatRunCostComparison_ColorsCostRelativeToLowest(decimal totalCostUsd, decimal lowestCostUsd, string expectedMarkup)
     {
         var markup = ConsoleRenderer.FormatRunCostComparison(
             new CostEstimate(0, 0, totalCostUsd),
             lowestCostUsd);
 
-        Assert.Contains(expectedLabel, markup, StringComparison.Ordinal);
+        Assert.Contains(expectedMarkup, markup, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -89,6 +90,45 @@ public sealed class ConsoleRendererTests
         Assert.Contains("unavailable", markup, StringComparison.Ordinal);
         Assert.DoesNotContain("lowest", markup, StringComparison.Ordinal);
         Assert.DoesNotContain("+", markup, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SummarizeDistinctValues_ReturnsMixedLabelForMultipleValues()
+    {
+        var summary = ConsoleRenderer.SummarizeDistinctValues(
+            ["Azure Retail Prices API", "Local catalog fallback"],
+            "Mixed pricing sources");
+
+        Assert.Equal("Mixed pricing sources", summary);
+    }
+
+    [Fact]
+    public void SummarizeDistinctValues_ReturnsSingleDistinctValue()
+    {
+        var summary = ConsoleRenderer.SummarizeDistinctValues(
+            ["swedencentral", "SwedenCentral"],
+            "mixed regions");
+
+        Assert.Equal("swedencentral", summary);
+    }
+
+    [Theory]
+    [InlineData(AzureRetailPricesPricingProvider.CatalogFallbackSourceName, "catalog fallback: API pricing unavailable", "*")]
+    [InlineData(AzureRetailPricesPricingProvider.SourceName, "API/catalog price mismatch", "!")]
+    [InlineData(AzureRetailPricesPricingProvider.SourceName, null, null)]
+    public void GetPricingMarker_UsesCompactTableMarkers(string source, string? note, string? expected)
+    {
+        Assert.Equal(expected, ConsoleRenderer.GetPricingMarker(source, note));
+    }
+
+    [Fact]
+    public void BuildModelCatalogCaption_PutsScaleExplanationOnNewLineAfterPricingDisclaimer()
+    {
+        var caption = ConsoleRenderer.BuildModelCatalogCaption("* Catalog fallback used for 1 model(s).");
+
+        Assert.Equal(
+            "* Catalog fallback used for 1 model(s).\nScale: ctx = maximum context window in tokens; ms = catalog typical latency estimate.",
+            caption);
     }
 
     [Theory]

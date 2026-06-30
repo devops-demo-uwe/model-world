@@ -36,17 +36,17 @@ Keep the console table visible during discussion. The most important columns are
 
 Before running prompts, spend two minutes on the model catalog table. It gives learners the three constraints they will keep revisiting during the demo: price, latency, and context window.
 
-| Model | Catalog context window | Catalog typical latency | Local price / 1M tokens |
+| Model | Catalog context window | Catalog typical latency | Local price / 1M tokens (`swedencentral`) |
 | --- | ---: | ---: | ---: |
-| GPT-5.4 | 256K tokens | 3,850 ms | $3.00 input / $12.00 output |
-| GPT-5.4 mini | 128K tokens | 1,150 ms | $0.60 input / $2.40 output |
+| GPT-5.4 | 256K tokens | 3,850 ms | $2.50 input / $15.00 output |
+| GPT-5.4 mini | 128K tokens | 1,150 ms | $0.75 input / $4.50 output |
 | o4-mini | 128K tokens | 2,050 ms | $1.10 input / $4.40 output |
-| DeepSeek-V4-Pro | 128K tokens | 2,550 ms | $0.50 input / $1.50 output |
-| Llama 3.3 70B Instruct | 128K tokens | 2,700 ms | $0.80 input / $0.80 output |
+| DeepSeek-V4-Pro | 128K tokens | 2,550 ms | $1.74 input / $3.48 output |
+| Llama 3.3 70B Instruct | 128K tokens | 2,700 ms | $0.71 input / $0.71 output |
 
 How to explain the terms:
 
-- **Price** is the unit rate per million input and output tokens. The run-level estimated cost is price multiplied by prompt and completion tokens. In live mode, Model World prefers Azure Retail Prices API rates when it can match input and output meters confidently; in static mode, it uses the local catalog prices above. Treat both as teaching estimates.
+- **Price** is the unit rate per million input and output tokens. The run-level estimated cost is price multiplied by prompt and completion tokens. In live mode, Model World prefers Azure Retail Prices API rates when it can match input and output meters confidently. If API pricing is unavailable, it uses the local catalog fallback and flags the row; if API pricing differs from the local fallback, it displays the API price and flags the mismatch. In static mode, it uses the local catalog prices above. Treat all displayed costs as teaching estimates.
 - **Latency** is the elapsed time for a model call. The catalog latency is a rough expectation, while the result table shows the measured live or simulated elapsed time for this specific prompt. Network conditions, throttling, regional load, prompt length, output length, and hidden reasoning work can all change it.
 - **Context window** is the maximum prompt, conversation history, retrieved content, tool output, and generated answer the model can fit at once. A larger context window is useful for long documents and long-running chats, but it does not guarantee better reasoning. Filling a large context window also increases prompt tokens, cost, and often latency.
 

@@ -76,13 +76,12 @@ Use user secrets for local instructor machines:
 
 ```powershell
 dotnet user-secrets set "ModelWorld:Azure:Endpoint" "https://<resource-name>.openai.azure.com/openai/v1/" --project src\ModelWorld\ModelWorld.csproj
-dotnet user-secrets set "ModelWorld:Azure:Region" "eastus" --project src\ModelWorld\ModelWorld.csproj
 dotnet user-secrets set "ModelWorld:Azure:MaxOutputTokenCount" "300" --project src\ModelWorld\ModelWorld.csproj
 dotnet user-secrets set "ModelWorld:Azure:Temperature" "0.2" --project src\ModelWorld\ModelWorld.csproj
 dotnet user-secrets set "ModelWorld:Azure:RequestTimeoutSeconds" "120" --project src\ModelWorld\ModelWorld.csproj
 ```
 
-Live mode uses `ModelWorld:Azure:Region` to query Azure Retail Prices API once at startup. The default is `eastus`. If you need to point at a test or proxy endpoint for pricing lookup, set `ModelWorld:Azure:PricingEndpoint`; otherwise keep the default public endpoint.
+Live mode uses each model's catalog `PricingRegion` to query Azure Retail Prices API once at startup. The current classroom catalog uses `swedencentral`. If a confident API meter is unavailable, the startup catalog uses the local catalog fallback price and flags the row. If an API meter is found but differs from the local catalog fallback, the API price is displayed and the row is flagged. If you need to point at a test or proxy endpoint for pricing lookup, set `ModelWorld:Azure:PricingEndpoint`; otherwise keep the default public endpoint.
 
 If your deployment names differ from the catalog defaults, add overrides:
 
@@ -98,7 +97,6 @@ For lab VMs, containers, or CI-style environments, use environment variables wit
 
 ```powershell
 $env:ModelWorld__Azure__Endpoint = "https://<resource-name>.openai.azure.com/openai/v1/"
-$env:ModelWorld__Azure__Region = "eastus"
 $env:ModelWorld__Azure__MaxOutputTokenCount = "300"
 $env:ModelWorld__Azure__Temperature = "0.2"
 $env:ModelWorld__Azure__RequestTimeoutSeconds = "120"
@@ -149,7 +147,8 @@ While requests are running, the status line shows the current model and prompt. 
 | Live mode says endpoint is missing | `ModelWorld:Azure:Endpoint` is not configured | Set user secrets or environment variables |
 | Authentication failed | Azure CLI is not signed in or the identity lacks access | Run `az login`, check subscription, assign the inference role |
 | Deployment not found | Catalog deployment name does not match Azure | Add a `DeploymentOverrides` setting or rename the Azure deployment to the catalog default |
-| Pricing unavailable | Azure Retail Prices API did not expose a confident input/output meter match for the model, region, or deployment type | Check `ModelWorld:Azure:Region`, verify the model's Azure pricing page or Foundry pricing terms, and treat Cost Management as the billing source of truth |
+| Catalog fallback pricing is flagged | Azure Retail Prices API did not expose a confident input/output meter match for the model, region, or deployment type | Check the model catalog `PricingRegion`, verify the model's Azure pricing page or Foundry pricing terms, and treat Cost Management as the billing source of truth |
+| API/catalog price mismatch is flagged | Azure Retail Prices API returned a confident meter, but it differs from the local catalog fallback | Prefer the displayed API price for the run, then update the catalog if the API price reflects the intended deployment type |
 | Content filter finish reason | Azure content filtering blocked output | Treat it as a learning result and discuss safety behavior |
 | Timeout | Network, quota, or model latency issue | Increase `RequestTimeoutSeconds` or try a smaller model |
 

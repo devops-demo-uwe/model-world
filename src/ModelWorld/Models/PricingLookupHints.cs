@@ -5,4 +5,6 @@ public sealed record PricingLookupHints(
     IReadOnlyList<string> SkuNameContains,
     IReadOnlyList<string> InputMeterNameContains,
     IReadOnlyList<string> OutputMeterNameContains,
-    IReadOnlyList<string> DeploymentTypeContains);
+    IReadOnlyList<string> DeploymentTypeContains,
+    IReadOnlyList<string> RequiredTextContains,
+    IReadOnlyList<string> ExcludedTextContains);

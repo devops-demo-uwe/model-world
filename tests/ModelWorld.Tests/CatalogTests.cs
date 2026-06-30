@@ -11,6 +11,7 @@ public sealed class CatalogTests
 
         Assert.Equal(5, models.Count);
         Assert.Equal(5, models.Select(model => model.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.All(models, model => Assert.Equal("swedencentral", model.PricingRegion));
         Assert.All(models, model => Assert.True(model.InputCostPerMillionTokensUsd > 0));
         Assert.All(models, model => Assert.True(model.OutputCostPerMillionTokensUsd > 0));
         Assert.All(models, model => Assert.NotEmpty(model.PricingLookupHints.ProductNameContains));

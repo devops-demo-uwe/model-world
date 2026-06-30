@@ -138,10 +138,9 @@ async Task<IModelRunner?> CreateRunnerAsync()
 		options.GetMaxOutputTokenCount();
 		options.GetTemperature();
 		options.GetRequestTimeout();
-		var region = options.GetPricingRegion();
 		var pricingEndpoint = options.GetPricingEndpoint();
 
-		pricingByModelId = await LoadPricingAsync(models, region, pricingEndpoint);
+		pricingByModelId = await LoadPricingAsync(models, pricingEndpoint);
 
 		return new AzureModelRunner(options, pricingByModelId);
 	}
@@ -154,27 +153,31 @@ async Task<IModelRunner?> CreateRunnerAsync()
 
 async Task<IReadOnlyDictionary<string, ModelPricing>> LoadPricingAsync(
 	IReadOnlyList<ModelProfile> pricingModels,
-	string region,
 	Uri pricingEndpoint)
 {
 	try
 	{
 		using var httpClient = new HttpClient();
 		var pricingProvider = new AzureRetailPricesPricingProvider(httpClient, pricingEndpoint);
-		return await pricingProvider.GetPricingAsync(pricingModels, region);
+		return await pricingProvider.GetPricingAsync(pricingModels);
 	}
 	catch (Exception exception) when (exception is HttpRequestException or NotSupportedException or System.Text.Json.JsonException or InvalidOperationException or TaskCanceledException)
 	{
 		return pricingModels.ToDictionary(
 			model => model.Id,
-			model => ModelPricing.Unavailable(
+			model => ModelPricing.CatalogFallback(
 				model,
-				AzureRetailPricesPricingProvider.SourceName,
-				region,
-				$"Pricing lookup failed: {exception.Message}"),
+				AzureRetailPricesPricingProvider.CatalogFallbackSourceName,
+				GetCatalogPricingRegion(model),
+				"catalog fallback: API pricing lookup failed"),
 			StringComparer.OrdinalIgnoreCase);
 	}
 }
+
+static string GetCatalogPricingRegion(ModelProfile model) =>
+	string.IsNullOrWhiteSpace(model.PricingRegion)
+		? "unknown"
+		: model.PricingRegion.Trim().ToLowerInvariant();
 
 static string? GetOptionValue(string[] arguments, string optionName)
 {

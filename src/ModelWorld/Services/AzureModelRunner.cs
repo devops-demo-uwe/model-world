@@ -136,7 +136,7 @@ public sealed class AzureModelRunner : IModelRunner
                 model.InputCostPerMillionTokensUsd,
                 model.OutputCostPerMillionTokensUsd,
                 source: "Local catalog pricing",
-                region: "static",
+                region: model.PricingRegion,
                 effectiveStartDate: null),
             StringComparer.OrdinalIgnoreCase);
 

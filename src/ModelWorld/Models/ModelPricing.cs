@@ -16,7 +16,8 @@ public sealed record ModelPricing(
         decimal outputCostPerMillionTokensUsd,
         string source,
         string region,
-        DateTimeOffset? effectiveStartDate) =>
+        DateTimeOffset? effectiveStartDate,
+        string? note = null) =>
         new(
             model.Id,
             inputCostPerMillionTokensUsd,
@@ -25,7 +26,17 @@ public sealed record ModelPricing(
             region,
             effectiveStartDate,
             IsAvailable: true,
-            Note: null);
+            note);
+
+    public static ModelPricing CatalogFallback(ModelProfile model, string source, string region, string note) =>
+        Available(
+            model,
+            model.InputCostPerMillionTokensUsd,
+            model.OutputCostPerMillionTokensUsd,
+            source,
+            region,
+            effectiveStartDate: null,
+            note);
 
     public static ModelPricing Unavailable(ModelProfile model, string source, string region, string note) =>
         new(
