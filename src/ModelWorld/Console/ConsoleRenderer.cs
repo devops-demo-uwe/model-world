@@ -16,6 +16,7 @@ public sealed class ConsoleRenderer
     private const string AccentAlt = "#f472b6";
     private const string Success = "#34d399";
     private const string Warning = "#fbbf24";
+    private const string Shine = "#fde047";
     private const string Muted = "#94a3b8";
     private const string NerdSpark = "󰐕";
     private const string NerdModel = "󰚩";
@@ -33,6 +34,11 @@ public sealed class ConsoleRenderer
     private static readonly Color SuccessColor = new(52, 211, 153);
     private static readonly Color WarningColor = new(251, 191, 36);
     private static readonly Color PanelFillColor = new(18, 25, 38);
+    private const string SaveCursorPosition = "\u001b[s";
+    private const string RestoreCursorPosition = "\u001b[u";
+    private const string HideCursor = "\u001b[?25l";
+    private const string ShowCursor = "\u001b[?25h";
+    private bool hasRenderedIntro;
 
     public ConsoleRenderer()
     {
@@ -46,7 +52,10 @@ public sealed class ConsoleRenderer
             AnsiConsole.Clear();
         }
 
-        RenderTitleBanner();
+        var shouldPlayGlitterEffect = !System.Console.IsOutputRedirected && !hasRenderedIntro;
+        hasRenderedIntro = true;
+
+        RenderTitleBanner(playGlitterEffect: shouldPlayGlitterEffect);
 
         var modePanelText = isLiveMode
             ? $"[bold {Warning}]Live Azure mode[/]: [white]Azure AI Foundry requests will be sent and may incur usage charges. Token usage and latency come from live responses.[/]"
@@ -62,12 +71,51 @@ public sealed class ConsoleRenderer
         AnsiConsole.WriteLine();
     }
 
-    private static void RenderTitleBanner()
+    private static void RenderTitleBanner(bool playGlitterEffect = false)
+    {
+        if (playGlitterEffect)
+        {
+            RenderLogoGlitterEffect();
+            return;
+        }
+
+        RenderTitleBannerFrame(shineColumn: null);
+    }
+
+    private static void RenderLogoGlitterEffect()
+    {
+        var logoWidth = LogoLines.Max(line => line.Length);
+        const int frameCount = 12;
+        const int shineWidth = 10;
+
+        System.Console.Write(SaveCursorPosition);
+        System.Console.Write(HideCursor);
+
+        try
+        {
+            for (var frame = 0; frame < frameCount; frame++)
+            {
+                System.Console.Write(RestoreCursorPosition);
+                var shineColumn = -shineWidth + (frame * (logoWidth + shineWidth * 2) / (frameCount - 1));
+                RenderTitleBannerFrame(shineColumn);
+                Thread.Sleep(45);
+            }
+
+            System.Console.Write(RestoreCursorPosition);
+            RenderTitleBannerFrame(shineColumn: null);
+        }
+        finally
+        {
+            System.Console.Write(ShowCursor);
+        }
+    }
+
+    private static void RenderTitleBannerFrame(int? shineColumn)
     {
         var title = new Rows(
         [
             Align.Center(new Markup($"[bold {Accent}]╭─[/][bold {AccentAlt}][/][bold black on {AccentAlt}] {NerdAzure} Azure AI Foundry [/][bold {AccentAlt}][/][bold {Success}][/][bold black on {Success}] {NerdChart} Compare [/][bold {Success}][/][bold {Warning}][/][bold black on {Warning}] {NerdTimer} Measure [/][bold {Warning}][/][bold {Accent}]─╮[/]")).Width(BannerInnerWidth),
-            .. BuildLogoWordmark(),
+            .. BuildLogoWordmark(shineColumn),
             Align.Center(new Markup($"[bold {Accent}]╰─[/][bold {AccentAlt}][/][bold black on {AccentAlt}] {NerdSpark} Model Comparison Lab [/][bold {AccentAlt}][/][bold {Warning}][/][bold black on {Warning}] {NerdTokens} Tokens [/][bold {Warning}][/][bold {Success}][/][bold black on {Success}] {NerdCost} Cost [/][bold {Success}][/][bold {Accent}]─╯[/]")).Width(BannerInnerWidth),
             Align.Center(new Markup($"[{Muted}]Foundry-style model runs, prompt galleries, latency, tokens, and cost estimates[/]")).Width(BannerInnerWidth),
             Align.Center(new Markup($"[{Muted}]Proudly presented to you by[/] [bold {Accent}]Azure Foundry[/][{Muted}],[/] [bold {Success}]GitHub Copilot[/][{Muted}], and[/] [bold {AccentAlt}]Uwe Baumann[/]")).Width(BannerInnerWidth)
@@ -82,20 +130,67 @@ public sealed class ConsoleRenderer
         AnsiConsole.WriteLine();
     }
 
-    private static IRenderable[] BuildLogoWordmark()
-    {
-        string[] lines =
-        [
-            @"    __  ___          __     __   _       __           __    __",
-            @"   /  |/  /___  ____/ /__  / /  | |     / /___  _____/ /___/ /",
-            @"  / /|_/ / __ \/ __  / _ \/ /   | | /| / / __ \/ ___/ / __  / ",
-            @" / /  / / /_/ / /_/ /  __/ /    | |/ |/ / /_/ / /  / / /_/ /  ",
-            @"/_/  /_/\____/\__,_/\___/_/     |__/|__/\____/_/  /_/\__,_/   "
-        ];
+    private static readonly string[] LogoLines =
+    [
+        @"    __  ___          __     __   _       __           __    __",
+        @"   /  |/  /___  ____/ /__  / /  | |     / /___  _____/ /___/ /",
+        @"  / /|_/ / __ \/ __  / _ \/ /   | | /| / / __ \/ ___/ / __  / ",
+        @" / /  / / /_/ / /_/ /  __/ /    | |/ |/ / /_/ / /  / / /_/ /  ",
+        @"/_/  /_/\____/\__,_/\___/_/     |__/|__/\____/_/  /_/\__,_/   "
+    ];
 
-        return lines
-            .Select(line => Align.Center(new Text(line, Style.Parse($"bold {Accent}"))).Width(BannerInnerWidth))
+    private static IRenderable[] BuildLogoWordmark(int? shineColumn = null)
+    {
+        return LogoLines
+            .Select(line => Align.Center(new Markup(BuildLogoLineMarkup(line, shineColumn))).Width(BannerInnerWidth))
             .ToArray();
+    }
+
+    internal static string BuildLogoLineMarkup(string line, int? shineColumn)
+    {
+        if (shineColumn is null)
+        {
+            return $"[bold {Accent}]{Markup.Escape(line)}[/]";
+        }
+
+        var builder = new StringBuilder();
+        var currentColor = string.Empty;
+
+        for (var column = 0; column < line.Length; column++)
+        {
+            var color = GetLogoColumnColor(column, shineColumn.Value);
+            if (!string.Equals(color, currentColor, StringComparison.Ordinal))
+            {
+                if (currentColor.Length > 0)
+                {
+                    builder.Append("[/]");
+                }
+
+                builder.Append(CultureInfo.InvariantCulture, $"[bold {color}]");
+                currentColor = color;
+            }
+
+            builder.Append(Markup.Escape(line[column].ToString(CultureInfo.InvariantCulture)));
+        }
+
+        if (currentColor.Length > 0)
+        {
+            builder.Append("[/]");
+        }
+
+        return builder.ToString();
+    }
+
+    private static string GetLogoColumnColor(int column, int shineColumn)
+    {
+        var distance = Math.Abs(column - shineColumn);
+        return distance switch
+        {
+            <= 1 => Shine,
+            <= 3 => Warning,
+            <= 5 => Success,
+            _ => Accent
+        };
     }
 
     public void RenderModelTable(
