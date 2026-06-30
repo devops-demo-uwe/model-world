@@ -1,4 +1,5 @@
 using ModelWorld.Console;
+using ModelWorld.Models;
 
 namespace ModelWorld.Tests;
 
@@ -66,6 +67,28 @@ public sealed class ConsoleRendererTests
 
         Assert.Contains("[[red]]model[[/]]", markup, StringComparison.Ordinal);
         Assert.Contains("[[blue]]task[[/]]", markup, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0.0010, 0.0010, "(lowest)")]
+    [InlineData(0.00121, 0.0010, "+21%")]
+    public void FormatRunCostComparison_LabelsCostRelativeToLowest(decimal totalCostUsd, decimal lowestCostUsd, string expectedLabel)
+    {
+        var markup = ConsoleRenderer.FormatRunCostComparison(
+            new CostEstimate(0, 0, totalCostUsd),
+            lowestCostUsd);
+
+        Assert.Contains(expectedLabel, markup, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FormatRunCostComparison_KeepsUnavailableCostUnchanged()
+    {
+        var markup = ConsoleRenderer.FormatRunCostComparison(CostEstimate.Unavailable(), lowestCostUsd: 0.001m);
+
+        Assert.Contains("unavailable", markup, StringComparison.Ordinal);
+        Assert.DoesNotContain("lowest", markup, StringComparison.Ordinal);
+        Assert.DoesNotContain("+", markup, StringComparison.Ordinal);
     }
 
     [Theory]

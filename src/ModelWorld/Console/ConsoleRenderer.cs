@@ -602,6 +602,14 @@ public sealed class ConsoleRenderer
 
     private static void RenderPromptComparisonTable(IReadOnlyList<SimulationResult> results)
     {
+        var availableCosts = results
+            .Where(result => result.Cost.IsAvailable)
+            .Select(result => result.Cost.TotalCostUsd)
+            .ToArray();
+        var lowestCostUsd = availableCosts.Length > 0
+            ? availableCosts.Min()
+            : (decimal?)null;
+
         var table = new Table()
             .Border(TableBorder.HeavyHead)
             .BorderColor(AccentColor)
@@ -615,7 +623,7 @@ public sealed class ConsoleRenderer
 
         table.AddRow(BuildRow($"[{Warning}]󰔟 Elapsed[/]", results, result => $"[{Warning}]{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms[/]"));
         table.AddRow(BuildRow($"[{Success}]󰓡 Tokens[/]", results, result => $"[{Accent}]{FormatWholeNumber(result.PromptTokens)}[/] prompt\n[{AccentAlt}]{FormatWholeNumber(result.CompletionTokens)}[/] completion\n[{Success}]{FormatWholeNumber(result.TotalTokens)}[/] total"));
-        table.AddRow(BuildRow($"[{AccentAlt}]{NerdCost} Estimated cost[/]", results, result => FormatRunCost(result.Cost)));
+    table.AddRow(BuildRow($"[{AccentAlt}]{NerdCost} Estimated cost[/]", results, result => FormatRunCostComparison(result.Cost, lowestCostUsd)));
         table.AddRow(BuildRow($"[{Success}]󰄬 Finish[/]", results, result => $"[{Success}]{Markup.Escape(result.FinishReason)}[/]"));
         table.AddRow(BuildRow($"[{Muted}]Note[/]", results, result => $"[{Muted}]{Markup.Escape(result.Note ?? "")}[/]"));
         table.AddRow(BuildRenderableRow($"[bold {Accent}]󰦨 Output[/]", results, result => FormatResultOutput(result.Output)));
@@ -852,10 +860,32 @@ public sealed class ConsoleRenderer
         return new PricingSummary(header, string.Join(' ', captionParts));
     }
 
-    private static string FormatRunCost(CostEstimate estimate) =>
-        estimate.IsAvailable
-            ? $"[{Accent}]${FormatCost(estimate.TotalCostUsd)}[/]"
-            : $"[{Muted}]unavailable[/]";
+    internal static string FormatRunCostComparison(CostEstimate estimate, decimal? lowestCostUsd)
+    {
+        if (!estimate.IsAvailable)
+        {
+            return $"[{Muted}]unavailable[/]";
+        }
+
+        var formattedCost = $"${FormatCost(estimate.TotalCostUsd)}";
+        if (lowestCostUsd is null)
+        {
+            return $"[{Accent}]{formattedCost}[/]";
+        }
+
+        if (estimate.TotalCostUsd == lowestCostUsd.Value)
+        {
+            return $"[{Accent}]{formattedCost}[/]\n[{Success}](lowest)[/]";
+        }
+
+        if (lowestCostUsd.Value <= 0)
+        {
+            return $"[{Accent}]{formattedCost}[/]";
+        }
+
+        var percentDifference = (estimate.TotalCostUsd - lowestCostUsd.Value) / lowestCostUsd.Value * 100m;
+        return $"[{Accent}]{formattedCost}[/]\n[{Warning}]+{percentDifference.ToString("0", CultureInfo.InvariantCulture)}%[/]";
+    }
 
     private static string FormatMonthlyEstimate(CostEstimate estimate) =>
         estimate.IsAvailable
