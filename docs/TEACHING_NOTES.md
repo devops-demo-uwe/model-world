@@ -2,6 +2,36 @@
 
 Use this file to save model comparison notes that help learners understand model behavior. Add a new dated note when a run shows a useful pattern.
 
+## 2026-06-30: Release Note Brief Summarization Benchmark
+
+### Prompt
+
+Use the **Release Note Brief** prompt from the summarization catalog. The task asks the model to compress a product update into 45-60 words, 2-3 sentences, and include only user value, current limitation, and next milestone.
+
+### Observation
+
+This benchmark is not mainly testing obscure factual recall. It tests instruction-following under compression: can the model preserve the product point, obey the length and structure constraints, and sound useful to a stakeholder?
+
+In one run, all models understood the main change and included the required themes. The strongest answer came from **GPT-5.4 mini** because it gave a concise stakeholder-ready summary: compare the same prompt across models, show response quality, latency, token usage, and estimated cost, note that pricing is illustrative, and name the next milestone as replacing estimates with actual billable cost data.
+
+**GPT-5.4** was also correct, but a little heavier and more internal in tone. **Llama 3.3 70B Instruct** was fast, cheap, and usable, but compressed away some important product nuance, especially the broader value of comparing the same prompt across multiple models.
+
+### Teaching Point
+
+Use this example to show that model quality is not only about knowing the answer. For business-writing tasks, the useful question is whether the model can follow a brief, keep the required information, and compress without losing the product value.
+
+This is also a good cost and latency lesson. Smaller or cheaper models can perform very well when the input is structured and the instructions are clear. For short summarization and release-note work, a cheaper model may be good enough, or even better, if it produces the clearest stakeholder-ready output.
+
+### Suggested Scoring
+
+Score this prompt on length control, user value, current limitation, next milestone, product language, and lack of noise. A practical rubric is:
+
+| Model | Likely score | Why |
+| --- | ---: | --- |
+| GPT-5.4 mini | 9/10 | Best balance of concise, complete, stakeholder-ready output. |
+| GPT-5.4 | 8/10 | Correct and detailed, but a little wordier. |
+| Llama 3.3 70B Instruct | 7/10 | Efficient and usable, but loses some user-value framing. |
+
 ## 2026-06-30: Byzantine Inkstand Office General Knowledge Benchmark
 
 ### Prompt
