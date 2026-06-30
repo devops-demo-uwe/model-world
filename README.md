@@ -14,6 +14,7 @@ The app supports two modes:
 - Comparison runs are limited to 3 models at a time so generated outputs fit in column-based result tables.
 - Side-by-side result summaries with latency, tokens, estimated cost, finish reason, and generated output.
 - A medium-enterprise chat app cost example that translates current or illustrative pricing into monthly spend.
+- An in-app help section that explains the benchmark workflow, interpretation guidance, and caveats.
 - A Spectre.Console interface for readable tables and result panels.
 - Unit tests for deterministic logic and catalog shape.
 - Keyless-only Azure integration through `DefaultAzureCredential`.
@@ -73,6 +74,12 @@ For the interactive selection flow, run:
 
 ```powershell
 dotnet run --project src\ModelWorld
+```
+
+To read the help section without starting a live run or validating Azure configuration:
+
+```powershell
+dotnet run --project src\ModelWorld -- --help
 ```
 
 ## Run Static Mode

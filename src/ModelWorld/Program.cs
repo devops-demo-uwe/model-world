@@ -6,6 +6,7 @@ using ModelWorld.Models;
 using ModelWorld.Services;
 
 var isDemo = args.Any(argument => string.Equals(argument, "--demo", StringComparison.OrdinalIgnoreCase));
+var shouldShowHelp = args.Any(argument => string.Equals(argument, "--help", StringComparison.OrdinalIgnoreCase) || string.Equals(argument, "-h", StringComparison.OrdinalIgnoreCase));
 var isStaticMode = args.Any(argument => string.Equals(argument, "--static", StringComparison.OrdinalIgnoreCase));
 var isLiveMode = !isStaticMode;
 var demoPromptId = GetOptionValue(args, "--prompt") ?? "math-check";
@@ -13,6 +14,14 @@ var models = isLiveMode ? ModelCatalog.Live : ModelCatalog.All;
 var prompts = PromptCatalog.All;
 var renderer = new ConsoleRenderer();
 IReadOnlyDictionary<string, ModelPricing>? pricingByModelId = null;
+
+if (shouldShowHelp)
+{
+	renderer.RenderIntro(isLiveMode);
+	renderer.RenderHelpSection(isLiveMode);
+	return;
+}
+
 var runner = await CreateRunnerAsync();
 
 if (runner is null)
@@ -42,6 +51,13 @@ while (true)
 	if (selectedAction == MainMenuAction.Exit)
 	{
 		break;
+	}
+
+	if (selectedAction == MainMenuAction.ViewHelp)
+	{
+		renderer.RenderHelpSection(isLiveMode);
+		renderer.WaitForHelpReturn();
+		continue;
 	}
 
 	if (selectedAction == MainMenuAction.ViewEnterpriseCostExample)
@@ -92,7 +108,6 @@ async Task RunComparisonAsync(
 		results = liveResults;
 	}, isLiveMode ? "Running live Azure AI Foundry requests..." : "Running static simulation...");
 
-	renderer.RenderRunSummary(results);
 	renderer.RenderResults(results);
 }
 

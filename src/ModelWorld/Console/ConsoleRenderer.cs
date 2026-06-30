@@ -10,6 +10,7 @@ namespace ModelWorld.Console;
 public enum MainMenuAction
 {
     RunComparison,
+    ViewHelp,
     ViewEnterpriseCostExample,
     Exit
 }
@@ -31,6 +32,7 @@ public sealed class ConsoleRenderer
     private const string NerdRun = "󰐊";
     private const string NerdCost = "󰃭";
     private const string NerdExit = "󰗼";
+    private const string NerdHelp = "?";
     private const string NerdAzure = "󰠅";
     private const string NerdChart = "󰄧";
     private const string NerdTimer = "󰔟";
@@ -287,6 +289,60 @@ public sealed class ConsoleRenderer
         AnsiConsole.WriteLine();
     }
 
+    public void RenderHelpSection(bool isLiveMode = false)
+    {
+        var idea = new Markup(
+            $"[bold {Accent}]Model World is a learning lab, not a leaderboard.[/]\n" +
+            $"[{Muted}]It runs the same small prompt against a curated model set so you can compare response quality, latency, token usage, finish reason, and estimated cost side by side.[/]\n" +
+            $"[{Muted}]Use it to build intuition about model tradeoffs before choosing a model for a real scenario.[/]");
+
+        var workflow = new Table()
+            .Border(TableBorder.None)
+            .HideHeaders()
+            .Expand()
+            .AddColumn(new TableColumn(string.Empty).NoWrap())
+            .AddColumn(new TableColumn(string.Empty))
+            .AddRow($"[bold {Accent}]1[/]", $"[white]Review the model catalog[/] [{Muted}]for family, context window, typical latency, and price per million tokens.[/]")
+            .AddRow($"[bold {AccentAlt}]2[/]", $"[white]Choose up to three models[/] [{Muted}]so outputs remain readable in side-by-side columns.[/]")
+            .AddRow($"[bold {Success}]3[/]", $"[white]Pick one prompt or the full gallery[/] [{Muted}]to test math, reasoning, coding review, summarization, and structured output behavior.[/]")
+            .AddRow($"[bold {Warning}]4[/]", $"[white]Compare the results[/] [{Muted}]for correctness, formatting discipline, speed, token use, finish reason, and estimated cost.[/]");
+
+        var watchouts = new Rows(
+        [
+            new Markup($"[bold {Warning}]Costs are estimates.[/] [{Muted}]Live prices come from Azure Retail Prices API when matched; actual billing can include discounts, credits, taxes, region changes, marketplace terms, and other services.[/]"),
+            new Markup($"[bold {Warning}]Latency varies.[/] [{Muted}]Network conditions, regional load, model warmup, throttling, and prompt length can change run times.[/]"),
+            new Markup($"[bold {Warning}]One prompt is not proof.[/] [{Muted}]Repeat interesting cases, vary wording, and use prompts that reflect your users' real work.[/]"),
+            new Markup($"[bold {Warning}]Outputs need judgment.[/] [{Muted}]Check facts, math, structured output validity, refusal behavior, and whether the answer follows the requested format.[/]"),
+            new Markup(isLiveMode
+                ? $"[bold {Warning}]Live mode sends Azure requests.[/] [{Muted}]Each run may incur usage charges and requires configured deployments plus keyless Microsoft Entra access.[/]"
+                : $"[bold {Warning}]Static mode is illustrative.[/] [{Muted}]It sends no Azure requests; sample quality, latency, tokens, and costs are deterministic teaching data.[/]")
+        ]);
+
+        WriteFullWidth(new Panel(idea)
+            .Border(BoxBorder.Double)
+            .BorderColor(AccentColor)
+            .Header($" [bold {Accent}]{NerdHelp} What Model World Is For[/] ")
+            .Padding(1, 0)
+            .Expand());
+        AnsiConsole.WriteLine();
+
+        WriteFullWidth(new Panel(workflow)
+            .Border(BoxBorder.Rounded)
+            .BorderColor(SuccessColor)
+            .Header($" [bold {Success}]{NerdRun} How To Use It[/] ")
+            .Padding(1, 0)
+            .Expand());
+        AnsiConsole.WriteLine();
+
+        WriteFullWidth(new Panel(watchouts)
+            .Border(BoxBorder.Rounded)
+            .BorderColor(WarningColor)
+            .Header($" [bold {Warning}]What To Watch For[/] ")
+            .Padding(1, 0)
+            .Expand());
+        AnsiConsole.WriteLine();
+    }
+
     public void RenderPromptTable(IReadOnlyList<PromptScenario> prompts)
     {
         AnsiConsole.WriteLine();
@@ -327,33 +383,6 @@ public sealed class ConsoleRenderer
 
             RenderPromptComparisonTable(group.ToArray());
         }
-    }
-
-    public void RenderRunSummary(IReadOnlyList<SimulationResult> results)
-    {
-        var table = new Table()
-            .Title($"[bold {Success}]{NerdRun} Run Summary[/]")
-            .Border(TableBorder.Heavy)
-            .BorderColor(SuccessColor)
-            .Width(LayoutWidth)
-            .AddColumn(new TableColumn($"[bold {Accent}]Model[/]").NoWrap())
-            .AddColumn(new TableColumn($"[bold {AccentAlt}]Prompt[/]").NoWrap())
-            .AddColumn(new TableColumn($"[bold {Warning}]Run[/]").RightAligned())
-            .AddColumn(new TableColumn($"[bold {AccentAlt}]{NerdCost} Cost[/]").RightAligned())
-            .AddColumn(new TableColumn($"[bold {Success}]Finish[/]").NoWrap());
-
-        foreach (var result in results)
-        {
-            table.AddRow(
-                $"[bold white]{Markup.Escape(result.Model.DisplayName)}[/]",
-                $"[{AccentAlt}]{Markup.Escape(result.Prompt.Title)}[/]",
-                $"[{Warning}]{FormatWholeNumber(result.Elapsed.TotalMilliseconds)} ms[/]\n[{Success}]{FormatWholeNumber(result.TotalTokens)} tok[/]",
-                FormatRunCost(result.Cost),
-                $"[{Success}]{Markup.Escape(result.FinishReason)}[/]");
-        }
-
-        AnsiConsole.Write(table);
-        AnsiConsole.WriteLine();
     }
 
     public IReadOnlyList<ModelProfile> SelectModels(IReadOnlyList<ModelProfile> models)
@@ -400,23 +429,66 @@ public sealed class ConsoleRenderer
     public MainMenuAction SelectMainMenuAction()
     {
         var runComparison = $"{NerdRun} Run a model comparison";
+        var viewHelp = $"{NerdHelp} Help: how to run better comparisons";
         var viewEnterpriseCostExample = $"{NerdCost} View enterprise cost example";
         var exit = $"{NerdExit} Exit Model World";
 
+        RenderMainMenuDeck();
+
         var selected = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title("What would you like to do?")
+                .Title($"[bold {Accent}]Choose a command[/]")
                 .HighlightStyle(Style.Parse($"bold {Accent}"))
-                .AddChoices(runComparison, viewEnterpriseCostExample, exit));
+                .AddChoices(runComparison, viewHelp, viewEnterpriseCostExample, exit));
 
         if (selected == runComparison)
         {
             return MainMenuAction.RunComparison;
         }
 
+        if (selected == viewHelp)
+        {
+            return MainMenuAction.ViewHelp;
+        }
+
         return selected == viewEnterpriseCostExample
             ? MainMenuAction.ViewEnterpriseCostExample
             : MainMenuAction.Exit;
+    }
+
+    private static void RenderMainMenuDeck()
+    {
+        var commands = new Table()
+            .Border(TableBorder.None)
+            .HideHeaders()
+            .Expand()
+            .AddColumn(new TableColumn(string.Empty).NoWrap())
+            .AddColumn(new TableColumn(string.Empty))
+            .AddColumn(new TableColumn(string.Empty))
+            .AddRow(
+                $"[bold {Accent}]{NerdRun} Compare Models[/]",
+                $"[{Muted}]Run selected prompts side-by-side[/]",
+                $"[{Success}]latency · tokens · cost[/]")
+            .AddRow(
+                $"[bold {Success}]{NerdHelp} Help[/]",
+                $"[{Muted}]Learn the workflow and benchmark caveats[/]",
+                $"[{Success}]quality · repeatability · judgment[/]")
+            .AddRow(
+                $"[bold {Warning}]{NerdCost} Enterprise Cost[/]",
+                $"[{Muted}]Estimate monthly workplace usage[/]",
+                $"[{Warning}]usage profile · model pricing[/]")
+            .AddRow(
+                $"[bold {AccentAlt}]{NerdExit} Exit[/]",
+                $"[{Muted}]Leave the comparison lab[/]",
+                $"[{AccentAlt}]return to shell[/]");
+
+        WriteFullWidth(new Panel(commands)
+            .Border(BoxBorder.Double)
+            .BorderColor(AccentColor)
+            .Header($" [bold {Accent}][/][bold black on {Accent}] Command Deck [/][bold {Accent}][/] ")
+            .Padding(1, 0)
+            .Expand());
+        AnsiConsole.WriteLine();
     }
 
     public bool ShouldRunAnotherComparison() =>
@@ -430,6 +502,13 @@ public sealed class ConsoleRenderer
         AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Enterprise cost example")
+                .HighlightStyle(Style.Parse($"bold {Accent}"))
+                .AddChoices($"{NerdRun} Return to main menu"));
+
+    public void WaitForHelpReturn() =>
+        AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Help")
                 .HighlightStyle(Style.Parse($"bold {Accent}"))
                 .AddChoices($"{NerdRun} Return to main menu"));
 
