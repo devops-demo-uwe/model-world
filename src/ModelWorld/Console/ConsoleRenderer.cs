@@ -304,7 +304,7 @@ public sealed class ConsoleRenderer
             .AddColumn(new TableColumn(string.Empty))
             .AddRow($"[bold {Accent}]1[/]", $"[white]Review the model catalog[/] [{Muted}]for family, context window, typical latency, and price per million tokens.[/]")
             .AddRow($"[bold {AccentAlt}]2[/]", $"[white]Choose up to three models[/] [{Muted}]so outputs remain readable in side-by-side columns.[/]")
-            .AddRow($"[bold {Success}]3[/]", $"[white]Pick one prompt or the full gallery[/] [{Muted}]to test math, reasoning, coding review, summarization, and structured output behavior.[/]")
+            .AddRow($"[bold {Success}]3[/]", $"[white]Pick one prompt[/] [{Muted}]to test math, reasoning, coding review, summarization, or structured output behavior.[/]")
             .AddRow($"[bold {Warning}]4[/]", $"[white]Compare the results[/] [{Muted}]for correctness, formatting discipline, speed, token use, finish reason, and estimated cost.[/]");
 
         var watchouts = new Rows(
@@ -393,37 +393,38 @@ public sealed class ConsoleRenderer
         {
             var selected = AnsiConsole.Prompt(
                 new MultiSelectionPrompt<string>()
-                    .Title($"Choose up to {MaximumComparedModels} models to compare")
+                    .Title($"Choose exactly {MaximumComparedModels} models to compare")
                     .HighlightStyle(Style.Parse($"bold {Accent}"))
                     .MoreChoicesText($"[{Muted}](Move up and down to reveal more models.)[/]")
-                    .InstructionsText($"[{Muted}](Press <space> to toggle a model, <enter> to run.)[/]")
+                    .InstructionsText($"[{Muted}](Press <space> to toggle models, <enter> to run with exactly {MaximumComparedModels}.)[/]")
                     .Required()
                     .PageSize(8)
                     .AddChoices(choices));
 
-            if (selected.Count <= MaximumComparedModels)
+            if (IsValidModelSelectionCount(selected.Count))
             {
                 return selected
                     .Select(displayName => models.First(model => model.DisplayName == displayName))
                     .ToArray();
             }
 
-            AnsiConsole.MarkupLine($"[bold {Warning}]Choose {MaximumComparedModels} or fewer models so the comparison fits in columns.[/]");
+            AnsiConsole.MarkupLine($"[bold {Warning}]Choose exactly {MaximumComparedModels} models so the comparison shows a complete side-by-side set.[/]");
         }
     }
 
+    internal static bool IsValidModelSelectionCount(int selectedModelCount) =>
+        selectedModelCount == MaximumComparedModels;
+
     public IReadOnlyList<PromptScenario> SelectPrompts(IReadOnlyList<PromptScenario> prompts)
     {
-        var choices = new[] { "All prompts" }.Concat(prompts.Select(prompt => $"{prompt.Domain}: {prompt.Title}")).ToArray();
+        var choices = prompts.Select(prompt => $"{prompt.Domain}: {prompt.Title}").ToArray();
         var selected = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Choose a prompt")
                 .HighlightStyle(Style.Parse($"bold {AccentAlt}"))
                 .AddChoices(choices));
 
-        return selected == "All prompts"
-            ? prompts
-            : [prompts.First(prompt => selected.EndsWith(prompt.Title, StringComparison.Ordinal))];
+        return [prompts.First(prompt => selected.EndsWith(prompt.Title, StringComparison.Ordinal))];
     }
 
     public MainMenuAction SelectMainMenuAction()

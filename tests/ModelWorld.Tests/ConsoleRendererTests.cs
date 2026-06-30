@@ -39,4 +39,15 @@ public sealed class ConsoleRendererTests
 
         Assert.Equal("[bold #38bdf8]abcde[/]", markup);
     }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    public void IsValidModelSelectionCount_RequiresExactlyThreeModels(int selectedModelCount, bool expected)
+    {
+        Assert.Equal(expected, ConsoleRenderer.IsValidModelSelectionCount(selectedModelCount));
+    }
 }
