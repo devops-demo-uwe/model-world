@@ -1,118 +1,26 @@
 # Teaching Notes
 
-Use this file to capture model comparison observations that are useful for explaining AI model behavior to learners. Add a new dated note whenever a run reveals a pattern worth discussing.
+Use this file to save model comparison notes that help learners understand model behavior. Add a new dated note when a run shows a useful pattern.
 
 ## 2026-06-30: Byzantine Inkstand Office General Knowledge Benchmark
 
-### Question
+### Prompt
 
 ```text
 In Byzantine administrative history, what Greek title was used for the head of the imperial inkstand office?
 ```
 
-### Correct Answer
+### Expected Answer
 
-The correct title is **ἐπὶ τοῦ κανικλείου** / **epi tou kanikleiou**.
+The expected answer is **ἐπὶ τοῦ κανικλείου** / **epi tou kanikleiou**. Also accept **κανίκλειος** / **kanikleios**.
 
-Also acceptable: **κανίκλειος** / **kanikleios**.
+This official was responsible for the imperial inkstand and the special scarlet or purple ink used to approve imperial documents. The role may sound small, but it was connected to the emperor's written authority: documents, signatures, formulas, seals, and access to official approval.
 
-### Meaning
+### Compact Scoring Guidance
 
-The **epi tou kanikleiou** / **kanikleios** was the official responsible for the imperial inkstand. This was not just a minor stationery role. The officeholder guarded or controlled the special imperial inkstand and the scarlet or purple ink used in authenticating imperial documents.
+Give full credit for answers that name **epi tou kanikleiou** or **kanikleios**, including Greek-script forms. Give partial credit for descriptions such as "keeper of the imperial inkstand" when the title is missing. Do not give credit for broader office titles such as **asekretis**, **chartoularios**, **logothetes**, **protonotarios**, **sakellarios**, **megas logothetes**, or **praipositos**.
 
-In practical terms, this official was involved in the machinery of imperial authorization: documents, signatures, formulae, seals, and access to the emperor's written authority.
-
-### Benchmark Scoring Guidance
-
-Mark these answers fully correct:
-
-```text
-epi tou kanikleiou
-```
-
-```text
-ἐπὶ τοῦ κανικλείου
-```
-
-```text
-kanikleios
-```
-
-```text
-κανίκλειος
-```
-
-```text
-The title was epi tou kanikleiou, also known as kanikleios.
-```
-
-```text
-The official was the kanikleios, the keeper of the imperial inkstand.
-```
-
-```text
-ἐπὶ τοῦ κανικλείου, literally the official "over the kanikleion" or imperial inkstand.
-```
-
-These answers are partially correct. They show relevant knowledge, but should not receive full credit unless the benchmark allows fuzzy scoring:
-
-```text
-Keeper of the imperial inkstand
-```
-
-```text
-The imperial inkstand keeper
-```
-
-```text
-Head of the kanikleion
-```
-
-```text
-Kanikleion
-```
-
-```text
-The official in charge of the kanikleion
-```
-
-Mark these answers incorrect because they name broader or different offices:
-
-```text
-asekretis
-```
-
-```text
-chartoularios
-```
-
-```text
-chartoularios tou kanikleiou
-```
-
-```text
-logothetes
-```
-
-```text
-protonotarios
-```
-
-```text
-sakellarios
-```
-
-```text
-megas logothetes
-```
-
-```text
-praipositos
-```
-
-### Recommended Expected Answer Field
-
-For strict matching:
+For strict matching, use this expected-answer shape:
 
 ```json
 {
@@ -126,19 +34,23 @@ For strict matching:
 }
 ```
 
-For benchmark explanation:
+### Why Models Give Different Answers
 
-```text
-The expected answer is epi tou kanikleiou, also called kanikleios. This was the Byzantine court official responsible for the imperial inkstand and the special ink used in authenticating imperial documents. Answers such as asekretis or chartoularios are too general and should not be accepted as the specific title.
-```
+This prompt is useful because the answer is very obscure, but it does not require math or reasoning steps. Unless a model has a search or retrieval tool, it does not check an official list of Byzantine offices. It predicts an answer from patterns it learned during training: Byzantine government, court documents, secretaries, ink, imperial authority, and Greek titles. If the exact title appears clearly in those patterns, the model may answer **epi tou kanikleiou** or **kanikleios**. If the connection is weak, the model may still give an answer that sounds fluent and confident.
+
+This is the hallucination risk in this benchmark. A hallucination is not always a completely invented answer. Sometimes it is a real term used in the wrong place. **Asekretis** and **chartoularios** are real Byzantine administrative terms, so they may sound believable, but they are too broad for this specific office. **Kanikleion** is also related to the inkstand, but it names the object or office context, not the official's title. These answers can sound correct because they are near the right topic, even when they miss the exact fact.
+
+The model may not simply say "I do not know" because its default task is to produce a helpful-looking answer. It has learned that users usually expect an answer, and many training examples reward confident completion. Unless the prompt asks the model to state uncertainty, or the system uses retrieval and verification, the model may choose the most likely nearby answer instead of stopping at uncertainty.
+
+Use this example to show that models may fill a knowledge gap with a likely nearby idea. In a model comparison, a confident but broad answer should be treated as partial topic knowledge, not as a precise correct answer.
 
 ## 2026-06-29: Verify the Rental Truck Math Locally
 
 ### Observation
 
-The rental truck benchmark is intentionally easy to understand, but it still has several arithmetic traps: included miles must be multiplied by the number of rental days, extra miles apply only to Plan A, the coupon applies before tax, the insurance fee applies only to Plan B, and tax is added after discounts, mileage charges, and fees.
+The rental truck benchmark is easy to understand, but it still has several math traps. Included miles must be multiplied by the number of rental days. Extra miles apply only to Plan A. The coupon applies before tax. The insurance fee applies only to Plan B. Tax is added after discounts, mileage charges, and fees.
 
-Because model outputs can look confident while still being numerically wrong, instructors should verify the expected answer with deterministic local arithmetic instead of relying on any model's explanation.
+Model outputs can look confident and still have wrong numbers. Instructors should verify the expected answer with local arithmetic instead of trusting a model explanation by itself.
 
 ### Instructor Verification Script
 
@@ -148,7 +60,7 @@ Run the verifier from the repository root. It does not call Azure or any externa
 python .\docs\scripts\rental_truck_verify.py
 ```
 
-The script lives at [docs/scripts/rental_truck_verify.py](scripts/rental_truck_verify.py) and uses Python's `Decimal` type for deterministic money arithmetic.
+The script lives at [docs/scripts/rental_truck_verify.py](scripts/rental_truck_verify.py). It uses Python's `Decimal` type so money values round in a reliable way.
 
 ```python
 from decimal import Decimal, ROUND_HALF_UP
@@ -159,11 +71,11 @@ def money(value: Decimal) -> Decimal:
 	return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 ```
 
-The full script is intentionally annotated so instructors can walk through each arithmetic step with learners.
+The full script includes notes so instructors can walk through each math step with learners.
 
 ### Expected Output
 
-The script prints the calculation flow first, then the two-line answer expected from the benchmark prompt.
+The script prints the calculation steps first. Then it prints the two-line answer expected from the benchmark prompt.
 
 ```text
 Rental Truck Choice benchmark verifier
@@ -203,27 +115,27 @@ Cheaper plan: Plan A by $50.15
 
 ### Teaching Point
 
-This benchmark is not hard because the story is obscure. It is hard because it combines several ordinary constraints that are easy to mishandle under pressure. A model can fail by using 100 included miles total instead of 100 per day, applying tax before the coupon, taxing only part of the subtotal, applying the insurance fee to the wrong plan, or rounding too early.
+This benchmark is not hard because the story is obscure. It is hard because it combines several simple rules that are easy to mix up. A model can fail by using 100 included miles total instead of 100 per day, applying tax before the coupon, taxing only part of the subtotal, applying the insurance fee to the wrong plan, or rounding too early.
 
-When reviewing live model outputs, have learners compare the two requested numbers against the script output. The goal is to teach that friendly, confident formatting is not the same thing as verified arithmetic.
+When reviewing live model outputs, ask learners to compare the two requested numbers with the script output. The goal is to show that a clear, confident answer is not the same as checked math.
 
 ## 2026-06-29: Why Math Is Hard for LLMs
 
 ### Observation
 
-Large language models often sound fluent and organized on math problems, but they can still return wrong numbers. The rental truck benchmark is a good classroom example because the story is familiar and the required arithmetic is not advanced, yet small mistakes in sequencing or bookkeeping change the final answer.
+Large language models often sound clear and organized on math problems, but they can still return wrong numbers. The rental truck benchmark is a good classroom example because the story is familiar and the math is not advanced. Even so, small mistakes in order or bookkeeping change the final answer.
 
 ### Teaching Point
 
-LLMs are primarily trained to predict plausible text, not to execute arithmetic the way a calculator or spreadsheet does. They learn many numeric patterns from examples, but a generated answer is still produced token by token. That means the model can write a convincing-looking calculation while losing track of an intermediate value, applying an operation in the wrong order, or rounding at the wrong time.
+LLMs are mainly trained to predict likely text. They do not do arithmetic the same way a calculator or spreadsheet does. They learn many number patterns from examples, but the answer is still generated one token at a time. This means a model can write a calculation that looks convincing while losing an intermediate value, using the wrong order, or rounding at the wrong time.
 
-A useful way to explain this is to contrast remembered facts with computed answers. A model may correctly answer the distance from London to Paris because that fact appears often in text it has seen: travel pages, geography examples, tourism articles, flight-distance tables, and similar sources. In that case, the model is often recalling or reconstructing a familiar fact pattern.
+A useful way to explain this is to compare remembered facts with computed answers. A model may correctly answer the distance from London to Paris because that fact appears often in text: travel pages, geography examples, tourism articles, flight-distance tables, and similar sources. In that case, the model is often repeating or rebuilding a familiar fact pattern.
 
-That is different from calculating the distance between two small villages that rarely appear together in public text. A mapping system such as Google Maps can look up coordinates, road networks, traffic rules, ferries, borders, speed limits, and route options, then run a path-finding algorithm. An LLM without tools does not automatically do that. It may generate a plausible-sounding distance based on nearby place names, regional scale, or examples it has seen, but it is not guaranteed to have measured anything.
+That is different from calculating the distance between two small villages that rarely appear together in public text. A map system can look up coordinates, roads, traffic rules, ferries, borders, speed limits, and route options. Then it can run a route algorithm. An LLM without tools does not automatically do that. It may generate a plausible distance based on nearby place names or examples it has seen, but it has not necessarily measured anything.
 
-The same distinction appears in arithmetic. If the question is common, such as "What is 12 x 12?", the model may answer correctly because the pattern is extremely familiar. If the question involves a new combination of discounts, fees, taxes, and included miles, the model has to maintain a chain of intermediate values. Unless it uses an actual calculator, code interpreter, spreadsheet, or other deterministic tool, it is still producing the answer as text rather than executing a guaranteed calculation.
+The same difference appears in arithmetic. If the question is common, such as "What is 12 x 12?", the model may answer correctly because the pattern is very familiar. If the question has a new mix of discounts, fees, taxes, and included miles, the model has to track several intermediate values. Unless it uses a calculator, code interpreter, spreadsheet, or another deterministic tool, it is still producing text rather than running a guaranteed calculation.
 
-Math problems are especially fragile because one early mistake propagates. If a model treats Plan A as having 100 included miles total instead of 100 miles per day, every later value may look internally consistent while still being wrong. The final response can be neatly formatted and confidently worded even though the calculation path drifted.
+Math problems are fragile because one early mistake affects the later steps. If a model treats Plan A as having 100 included miles total instead of 100 miles per day, every later value may look consistent but still be wrong. The final response can be neat and confident even when the calculation went off track.
 
 ### Common Failure Modes
 
@@ -245,7 +157,7 @@ Those are different skills. A model may do the first two well and still fail the
 
 ### Recommended Practice
 
-For math-heavy tasks, ask the model to produce executable verification code rather than asking it to calculate the final result only through token generation. A Python script, spreadsheet formula, SQL query, or small unit-tested function can be run, inspected, corrected, and reused. The model is still useful, but its role shifts from being the calculator to helping build a calculator-shaped artifact.
+For math-heavy tasks, ask the model to produce code or formulas that you can run. Do not ask it to calculate the final result only by generating text. A Python script, spreadsheet formula, SQL query, or small tested function can be run, checked, fixed, and reused. The model is still useful, but its role changes. It helps build the calculator instead of acting as the calculator.
 
 This is the safer workflow to teach:
 
@@ -255,35 +167,35 @@ This is the safer workflow to teach:
 4. Compare the final answer to the model's natural-language answer.
 5. Fix the code or assumptions if the intermediate values reveal a mismatch.
 
-That distinction matters. Token generation is good at producing plausible explanations and code drafts. Deterministic tools are good at arithmetic. The best workflow combines both: use the model to help express the calculation, then use code to execute it.
+This difference matters. Token generation is good for explanations and code drafts. Deterministic tools are good for arithmetic. The best workflow uses both: use the model to express the calculation, then use code to run it.
 
 ## 2026-06-29: Reasoning Models Can Spend Hidden Completion Tokens
 
 ### Observation
 
-In the summarization scenario, `o4-mini` produced a visible answer that was only moderately longer than the other models, but it reported far more completion tokens. This is a useful teaching example because `o4-mini` is a reasoning model.
+In the summarization scenario, `o4-mini` produced a visible answer that was only a little longer than the other models. But it reported many more completion tokens. This is a useful teaching example because `o4-mini` is a reasoning model.
 
 ### Teaching Point
 
-Reasoning models are tuned to spend extra computation on multi-step problems before producing the final answer. They are best understood as deliberation-first models. General chat or instruction models usually try to answer directly, while reasoning models may use an internal reasoning budget to plan, check, or refine their response.
+Reasoning models are tuned to spend more work on multi-step problems before they produce the final answer. They are best understood as models that think more before answering. General chat or instruction models usually answer more directly. Reasoning models may use extra hidden work to plan, check, or improve their response.
 
-Those internal reasoning tokens may not appear in the visible answer, but they can still be counted as output or completion tokens by the model API. This means a reasoning model can look concise on screen while still using many more billable completion tokens than a non-reasoning model.
+Those hidden reasoning tokens may not appear in the visible answer. But the model API can still count them as output or completion tokens. This means a reasoning model can look short on screen while still using many more billable completion tokens than a non-reasoning model.
 
 ### Effect on Token Usage and Pricing
 
-For non-reasoning chat models, completion tokens usually correspond closely to the visible response. For reasoning models, completion tokens can include both hidden reasoning work and the final visible answer.
+For non-reasoning chat models, completion tokens usually match the visible response closely. For reasoning models, completion tokens can include both hidden reasoning work and the final visible answer.
 
-That matters because output tokens are commonly billed separately from input tokens, and often at a higher rate. Hidden reasoning tokens can therefore increase cost even when the visible answer is short. They can also increase latency because the model is doing more work before returning the final answer.
+This matters because output tokens are often billed separately from input tokens, and often at a higher price. Hidden reasoning tokens can increase cost even when the visible answer is short. They can also increase latency because the model is doing more work before it returns the final answer.
 
 ### Effect on Results
 
-Reasoning models are often a strong fit for tasks that benefit from careful intermediate thinking, such as math, logic, planning, debugging, constrained decisions, and multi-step analysis. They may be overkill for simple summarization, rewriting, or short product copy, where a general chat model can produce comparable output with lower latency and fewer completion tokens.
+Reasoning models often fit tasks that need careful step-by-step thinking, such as math, logic, planning, debugging, constrained decisions, and multi-step analysis. They may be too much for simple summarization, rewriting, or short product copy. For those tasks, a general chat model may give similar quality with lower latency and fewer completion tokens.
 
-In Model World, this is a useful model-selection lesson: choose reasoning models when the task actually needs reasoning, not just because the model is more advanced.
+In Model World, this is a useful model-selection lesson: choose reasoning models when the task needs reasoning, not only because the model is newer or more advanced.
 
 ### Discussion Prompt
 
-When reviewing a comparison table, ask learners to compare visible answer quality against latency, completion tokens, and estimated cost. If the reasoning model used many more completion tokens without a noticeably better answer, ask whether the task justified the extra reasoning budget.
+When reviewing a comparison table, ask learners to compare visible answer quality with latency, completion tokens, and estimated cost. If the reasoning model used many more completion tokens without a clearly better answer, ask whether the task needed the extra reasoning work.
 
 ## 2026-06-29: Coding Review Reveals Implicit Contract Reasoning
 
@@ -296,9 +208,9 @@ public static decimal Average(decimal total, int count) => total / count;
 
 ### Observation
 
-All three models found the obvious defect: the method can divide by zero when `count` is `0`. That makes this a useful coding example because the interesting difference is not whether the models know C# syntax. The interesting difference is how deeply they infer the API contract behind the code.
+All three models found the obvious bug: the method can divide by zero when `count` is `0`. This is a useful coding example because the interesting difference is not whether the models know C# syntax. The interesting difference is how well they understand the method's contract.
 
-For a method named `Average`, a count of zero is invalid. A negative count is also almost certainly invalid. The better review is therefore not only "avoid divide-by-zero," but "define the valid range for `count` as positive."
+For a method named `Average`, a count of zero is invalid. A negative count is also almost certainly invalid. The better review is not only "avoid divide-by-zero." It is also "define `count` as a positive number."
 
 ### Model Comparison
 
@@ -308,7 +220,7 @@ For a method named `Average`, a count of zero is invalid. A negative count is al
 | GPT-5.4 mini | `count == 0` | `ArgumentException` | No | Efficient assistant |
 | o4-mini | `count <= 0` | `ArgumentOutOfRangeException` | Yes | Contract-focused reasoning |
 
-`GPT-5.4` gave a solid senior-reviewer answer: fix the immediate bug, then mention that negative counts may also need to be rejected depending on the domain. `GPT-5.4 mini` gave a concise everyday code-review answer: correct, practical, and likely good enough for many cases. `o4-mini` gave the strongest contract-level improvement by checking `count <= 0` and using `ArgumentOutOfRangeException`, which more precisely describes an argument outside its allowed range.
+`GPT-5.4` gave a solid review answer: fix the immediate bug, then mention that negative counts may also need to be rejected depending on the domain. `GPT-5.4 mini` gave a short practical answer: correct and likely good enough for many cases. `o4-mini` gave the strongest contract-level improvement by checking `count <= 0` and using `ArgumentOutOfRangeException`, which better describes an argument outside its allowed range.
 
 ### Stronger Review Target
 
@@ -334,9 +246,9 @@ better contract: count must be positive
 
 ### Teaching Point
 
-This coding prompt is stronger than a simple reasoning trap because it mirrors a realistic developer workflow. All models can identify the visible failure mode, but the best code-review answer notices the hidden assumption: an average should not be computed from a non-positive count.
+This coding prompt is stronger than a simple trick question because it matches a realistic developer workflow. All models can find the visible bug. The best code-review answer also finds the hidden assumption: an average should not be computed from a non-positive count.
 
-Use this example to distinguish fixing an error from improving a contract. The obvious bug is divide-by-zero. The better review is that the method should define `count` as a positive value.
+Use this example to separate fixing an error from improving a contract. The obvious bug is divide-by-zero. The better review says that `count` must be positive.
 
 ### Demo Takeaway
 
@@ -344,4 +256,4 @@ For a live presentation, summarize it this way:
 
 > Here all models find the obvious defect. But `o4-mini` goes one step deeper: it treats the method as an API contract and checks the full invalid range, not only the divide-by-zero case. This is where reasoning-oriented models can be useful in code review.
 
-The tradeoff is also visible in the benchmark table: `GPT-5.4 mini` is the practical default, `GPT-5.4` gives a more polished review, and `o4-mini` may catch better edge-case logic, but can be more verbose and not always cheaper in a given run.
+The tradeoff is also visible in the benchmark table. `GPT-5.4 mini` is the practical default. `GPT-5.4` gives a more polished review. `o4-mini` may catch better edge-case logic, but it can be more verbose and may not be cheaper in a given run.
