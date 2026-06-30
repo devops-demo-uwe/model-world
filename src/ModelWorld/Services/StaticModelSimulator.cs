@@ -50,6 +50,7 @@ public sealed class StaticModelSimulator : IModelRunner
         "coding-review" => 31,
         "summarization" => 165,
         "structured-output" => 39,
+        "general-knowledge-escalation" => 90,
         _ => Math.Max(24, prompt.PromptText.Length / 4)
     };
 
@@ -62,6 +63,7 @@ public sealed class StaticModelSimulator : IModelRunner
             "coding-review" => 54,
             "summarization" => 50,
             "structured-output" => 28,
+            "general-knowledge-escalation" => 58,
             _ => 48
         };
 
@@ -83,6 +85,7 @@ public sealed class StaticModelSimulator : IModelRunner
             "math-check" => 420,
             "reasoning-schedule" => 340,
             "coding-review" => 180,
+            "general-knowledge-escalation" => 260,
             "structured-output" => -120,
             _ => 0
         };
@@ -130,6 +133,13 @@ public sealed class StaticModelSimulator : IModelRunner
         {
             "llama-33-70b-instruct" => "{\n  \"priority\": \"high\",\n  \"owner\": \"Erin\",\n  \"nextAction\": \"Validate the demo run before Friday.\"\n}\n\nThis blocks the walkthrough, so it should be handled soon.",
             _ => "{\n  \"priority\": \"high\",\n  \"owner\": \"Erin\",\n  \"nextAction\": \"Validate the demo run before Friday\"\n}"
+        },
+        "general-knowledge-escalation" => model.Id switch
+        {
+            "gpt-54-mini" => "1. Mars\n2. Henri Moissan\n3. The title was likely asekretis, an imperial secretary connected with official documents.",
+            "o4-mini" => "1. Mars\n2. Henri Moissan\n3. epi tou kanikleiou, also described as the kanikleios, the official associated with the imperial inkstand.",
+            "llama-33-70b-instruct" => "1. Mars\n2. Henri Moissan\n3. A plausible title is chartoularios, a Byzantine official involved with records and documents.",
+            _ => "1. Mars\n2. Henri Moissan\n3. epi tou kanikleiou, the Byzantine official associated with the imperial inkstand."
         },
         _ => "This static prototype does not have a canned response for the selected prompt yet."
     };

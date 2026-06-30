@@ -45,4 +45,24 @@ public sealed class StaticModelSimulatorTests
         Assert.Contains("10 cents", results.Single(result => result.Model.Id == "gpt-54-mini").Output, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("5 cents", results.Single(result => result.Model.Id == "o4-mini").Output, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public async Task RunAsync_ShowsGeneralKnowledgeEscalationContrast()
+    {
+        var simulator = new StaticModelSimulator();
+        var models = ModelCatalog.GetDefaultComparisonModels();
+        var prompts = new[] { PromptCatalog.GetById("general-knowledge-escalation") };
+
+        var results = await simulator.RunAsync(models, prompts);
+
+        Assert.Equal(3, results.Count);
+        Assert.All(results, result =>
+        {
+            Assert.Contains("Mars", result.Output, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Moissan", result.Output, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("canned response", result.Output, StringComparison.OrdinalIgnoreCase);
+        });
+        Assert.Contains(results, result => result.Output.Contains("epi tou kanikleiou", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(results, result => result.Output.Contains("asekretis", StringComparison.OrdinalIgnoreCase));
+    }
 }

@@ -2,6 +2,8 @@
 
 Use this file to save model comparison notes that help learners understand model behavior. Add a new dated note when a run shows a useful pattern.
 
+For an instructor-led run order and classroom talking points, use the [structured demo guide](STRUCTURED_DEMO_GUIDE.md).
+
 ## 2026-06-30: Release Note Brief Summarization Benchmark
 
 ### Prompt
@@ -31,6 +33,71 @@ Score this prompt on length control, user value, current limitation, next milest
 | GPT-5.4 mini | 9/10 | Best balance of concise, complete, stakeholder-ready output. |
 | GPT-5.4 | 8/10 | Correct and detailed, but a little wordier. |
 | Llama 3.3 70B Instruct | 7/10 | Efficient and usable, but loses some user-value framing. |
+
+## 2026-06-30: JSON Task Extractor Structured Output Benchmark
+
+### Prompt
+
+Use the **JSON Task Extractor** prompt from the structured output catalog. The task asks the model to return JSON with exactly three fields: `priority`, `owner`, and `nextAction`.
+
+```text
+Return JSON with fields priority, owner, and nextAction for this note: Erin should validate the demo run before Friday; it blocks the team walkthrough.
+```
+
+### Observation
+
+This benchmark is useful because it tests a different skill from obscure knowledge, math, or summarization. The model does not need deep reasoning. It mainly needs to obey a machine-readable output contract: return valid JSON, suppress prose, use the requested fields, and keep the values clean.
+
+The ideal answer is valid JSON with only the requested fields:
+
+```json
+{
+    "priority": "high",
+    "owner": "Erin",
+    "nextAction": "Validate the demo run before Friday"
+}
+```
+
+Minor wording differences are acceptable, but extra explanation, markdown fences, wrapper text, or additional fields should lower the score because they make downstream automation more fragile.
+
+### Model Comparison
+
+| Model | Likely score | Why |
+| --- | ---: | --- |
+| GPT-5.4 | 9/10 | Valid JSON with the right fields and values, but the `nextAction` includes extra consequence context. |
+| GPT-5.4 mini | 10/10 | Exact structured extraction: concise values, valid JSON, no extra prose, and the lowest cost in this run. |
+| o4-mini | 9/10 | Correct JSON, but it used many more completion tokens than the task required. |
+
+`GPT-5.4` mostly follows the contract. Its output is valid JSON and the values are correct, but the `nextAction` is slightly longer than necessary because it folds in the consequence: "to unblock the team walkthrough." That is defensible, but not as clean as the expected extraction.
+
+`GPT-5.4 mini` is the strongest result. It returns exactly the requested fields, uses concise values, avoids prose, and has the best latency and cost profile for this run.
+
+`o4-mini` returns correct JSON, but the table shows a much higher completion-token count for the same visible answer. This is another useful example of a reasoning-oriented model spending extra hidden work on a task that does not need much reasoning.
+
+### Teaching Point
+
+Use this example to show that structured extraction is about format obedience, not general intelligence. In an application workflow, the best model is often the one that returns valid JSON reliably, cheaply, and quickly.
+
+This benchmark also makes the cost lesson concrete. Bigger or more reasoning-heavy models may be unnecessary when the job is narrow extraction. For JSON extraction, the cheapest reliable structured model often wins because invalid or messy JSON can break downstream automation even when the semantic answer is basically right.
+
+### Suggested Scoring
+
+Score this prompt on validity, schema compliance, extraction accuracy, cleanliness, and efficiency:
+
+| Dimension | What to check |
+| --- | --- |
+| Valid JSON | Output parses without repair. |
+| Schema compliance | Output contains only `priority`, `owner`, and `nextAction`. |
+| Correct extraction | Priority is high, owner is Erin, and the next action is validating the demo run before Friday. |
+| No extra prose | No markdown, explanation, wrapper text, or conversational lead-in. |
+| Value cleanliness | Field values are concise and do not include unnecessary context. |
+| Efficiency | Low latency, low completion tokens, and low estimated cost. |
+
+For a live presentation, summarize it this way:
+
+> This benchmark reveals format obedience. The best answer is not the most elaborate one. It is the answer that an application can parse and use immediately.
+
+The model-selection takeaway is practical: obscure knowledge may need a stronger model, business summarization may work well on a smaller model, and JSON extraction often belongs to the cheapest model that can reliably follow the schema.
 
 ## 2026-06-30: Byzantine Inkstand Office General Knowledge Benchmark
 
