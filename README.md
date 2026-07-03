@@ -11,7 +11,7 @@ The app supports two modes:
 
 - 5 configured model profiles for the deployed classroom comparison set: `gpt-5.4`, `gpt-5.4-mini`, `o4-mini`, `DeepSeek-V4-Pro`, and `Llama-3.3-70B-Instruct`.
 - 6 prompt scenarios covering mathematics, reasoning, coding, summarization, structured output, and general knowledge escalation.
-- A Foundry-ready JSONL evaluation dataset at [docs/data/model-world-foundry-evaluation.jsonl](docs/data/model-world-foundry-evaluation.jsonl) for uploading through the Azure AI Foundry evaluation page.
+- Foundry-ready JSONL evaluation datasets, including a generic grounded QA dataset at [docs/data/foundry-grounded-qa-evaluation.jsonl](docs/data/foundry-grounded-qa-evaluation.jsonl) for built-in evaluator scoring and the Model World scenario dataset at [docs/data/model-world-foundry-evaluation.jsonl](docs/data/model-world-foundry-evaluation.jsonl).
 - Scripted demo runs that execute one prompt against the default three-model set: `gpt-5.4-mini`, `o4-mini`, and `Llama-3.3-70B-Instruct`.
 - Interactive comparison runs that require exactly 3 selected models so generated outputs fit in column-based result tables.
 - A custom prompt option for ad hoc comparisons, capped at 2,000 characters.
@@ -130,6 +130,7 @@ dotnet run --project src\ModelWorld -- --static
 ## Notes
 
 - Use the [structured demo guide](docs/STRUCTURED_DEMO_GUIDE.md) for an instructor-led benchmark sequence, discussion prompts, and model-evaluation talking points.
+- Use the [Foundry evaluation demo guide](docs/FOUNDRY_EVALUATION_DEMO.md) for uploading the grounded QA dataset and choosing built-in evaluators.
 - Static mode sends no Azure requests and requires no endpoint, deployment, token, or user secret.
 - Connected mode uses keyless Microsoft Entra authentication only. API keys are not supported.
 - The live client uses the OpenAI .NET package against the normalized Azure `/openai/v1/` endpoint with the `https://ai.azure.com/.default` token scope.

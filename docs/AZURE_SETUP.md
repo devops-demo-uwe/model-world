@@ -107,21 +107,44 @@ $env:ModelWorld__Azure__DeploymentOverrides__gpt-54-mini = "<your-gpt-5.4-mini-d
 
 ## Prepare a Foundry Evaluation Dataset
 
-The repository includes a ready-to-upload JSONL dataset for the official Azure AI Foundry evaluation flow:
+The repository includes two ready-to-upload JSONL datasets. For the official Azure AI Foundry evaluator flow, start with the grounded QA dataset because its fields map cleanly to common built-in evaluators:
 
 ```text
-docs/data/model-world-foundry-evaluation.jsonl
+docs/data/foundry-grounded-qa-evaluation.jsonl
 ```
+
+For the complete portal walkthrough, evaluator recommendations, and score interpretation notes, see [Foundry grounded QA evaluation demo](FOUNDRY_EVALUATION_DEMO.md).
+
+The original Model World scenario dataset remains available at `docs/data/model-world-foundry-evaluation.jsonl`, but it is better for classroom prompt comparison than for generic Foundry evaluator scoring.
 
 Use it from the Foundry **Evaluations** page when creating a **Target: Model** evaluation:
 
 1. In the **Data** step, choose **Existing dataset**, then **Upload new dataset**.
-2. Upload `docs/data/model-world-foundry-evaluation.jsonl`.
-3. In **Field mapping**, map the model input or query field to `query`.
-4. Map expected answer or ground truth fields to `ground_truth` when using criteria that need a reference answer.
-5. Ignore the token metadata fields for scoring. They mirror the local static simulator estimates for classroom budgeting; live Foundry runs report their own token usage.
+2. Upload `docs/data/foundry-grounded-qa-evaluation.jsonl`.
+3. In **Configure models**, click **Configure** for each deployment.
+4. Set **Max Completion Tokens** to `300` to match the local app default.
+5. Add a **User** message with this template:
 
-The dataset intentionally does not include a `response` column because the Foundry target model generates the response during the evaluation run. Each row also includes `scenario_id`, `domain`, `title`, `intent`, and `rubric` fields to make results easier to filter and discuss after the run.
+    ```text
+    Use only the context below to answer the question. If the context does not contain the answer, say "I don't know from the provided context."
+
+    Context:
+    {{context}}
+
+    Question:
+    {{query}}
+    ```
+
+6. Leave the **Developer** message empty unless the evaluator requires a shared instruction across all rows.
+7. In **Field mapping** or **Criteria**, map evaluator fields this way when prompted:
+    - Query/input: `query`
+    - Context: `context`
+    - Ground truth/reference answer: `ground_truth`
+    - Response/answer: the generated model output, not a dataset column
+
+If the portal previews variables with an `item.` prefix, use `{{item.context}}` and `{{item.query}}` instead of `{{context}}` and `{{query}}`.
+
+The grounded QA dataset intentionally does not include a `response` column because the Foundry target model generates the response during the evaluation run.
 
 ## Run a Smoke Test
 
